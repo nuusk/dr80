@@ -54,6 +54,31 @@ end
 
 -- Audio manager end --
 
+-- Pill manager --
+
+local PILLS = {
+	RED = 256,
+	YELLOW = 258,
+	BLUE = 260,
+}
+
+local VIRUSES = {
+	YELLOW_1 = 274,
+	YELLOW_2 = 275,
+	YELLOW_3 = 290,
+	YELLOW_4 = 291,
+	BLUE_1 = 276,
+	BLUE_2 = 277,
+	BLUE_3 = 292,
+	BLUE_4 = 293,
+	RED_1 = 272,
+	RED_2 = 273,
+	RED_3 = 288,
+	RED_4 = 289,
+}
+
+-- Pill manager end --
+
 -- Game manager --
 
 local SCENES = {
