@@ -1,4 +1,4 @@
----@diagnostic disable: undefined-global
+---@diagnostic disable: undefined-global, lowercase-global
 -- title:   game title
 -- author:  game developer, email, etc.
 -- desc:    short description
@@ -6,6 +6,66 @@
 -- license: MIT License (change this to your license of choice)
 -- version: 0.1
 -- script:  lua
+
+Console = {
+	open = true,
+	lines = {},
+	max = 120,
+	scroll = 0,
+	actions = {},
+	action_keys = { 4, 5, 6, 7 },
+	action_labels = {},
+}
+
+function Console.toggle()
+	Console.open = not Console.open
+end
+
+function Console.log(msg)
+	local t = tstamp()
+
+	local hours = math.floor(t / 3600) % 24
+	local minutes = math.floor(t / 60) % 60
+	local seconds = math.floor(t) % 60
+	local s = string.format("[%02d:%02d:%02d] %s", hours, minutes, seconds, tostring(msg))
+
+	table.insert(Console.lines, s)
+	if #Console.lines > Console.max then
+		table.remove(Console.lines, 1)
+	end
+end
+
+function Console.update()
+	if btnp(7) then
+		Console.toggle()
+	end
+	if not Console.open then
+		return
+	end
+	if btnp(2) then
+		Console.scroll = math.min(Console.scroll + 1, math.max(0, #Console.lines - 1))
+	end
+	if btnp(3) then
+		Console.scroll = math.max(Console.scroll - 1, 0)
+	end
+end
+
+function Console.draw()
+	if not Console.open then
+		return
+	end
+	local w, h = 140, 120
+	local x, y = 100, 0
+	rect(x, y, w, h, 0)
+	rectb(x, y, w, h, 13)
+	local visible = 9
+	local start = math.max(1, #Console.lines - visible - Console.scroll + 1)
+	local idx = 0
+	for i = start, math.min(#Console.lines, start + visible - 1) do
+		print(Console.lines[i], x + 4, y + 4 + idx * 8, 12, false, 1, true)
+		idx = idx + 1
+	end
+end
 
 -- Global variables --
 
@@ -57,10 +117,23 @@ end
 -- Pill manager --
 
 local PILLS = {
-	RED = 256,
-	YELLOW = 258,
-	BLUE = 260,
+	{ name = "RED", sprite = 256 },
+	{ name = "YELLOW", sprite = 258 },
+	{ name = "BLUE", sprite = 260 },
 }
+
+local Pills = {}
+
+function Pills.gen()
+	local tmp = PILLS
+	local li = math.random(1, #tmp)
+	local lh = tmp[li]
+	table.remove(tmp, li)
+	local ri = math.random(1, #tmp)
+	local rh = tmp[ri]
+	s = string.format("l: %s %s, r: %s %s", lh.name, lh.sprite, rh.name, rh.sprite)
+	Console.log(s)
+end
 
 local VIRUSES = {
 	YELLOW_1 = 274,
@@ -89,7 +162,15 @@ local SCENES = {
 local Game = {
 	scene = SCENES.GAME,
 	grid,
+	pill_on_scene = false,
 }
+
+function Game.eval()
+	if Game.pill_on_scene == false then
+		Pills.gen()
+		Game.pill_on_scene = true
+	end
+end
 
 -- Game manager end --
 
@@ -153,9 +234,12 @@ end
 t = 0
 x = 96
 y = 24
+inter = 60
 
 function TIC()
 	Audio.playBGM(TRACK.FLORA)
+
+	Console.update()
 
 	if btn(0) then
 		y = y - 1
@@ -170,8 +254,13 @@ function TIC()
 		x = x + 1
 	end
 
+	if t % inter == 0 then
+		Game.eval()
+	end
+
 	cls(13)
 	Grid.draw()
+	Console.draw()
 	t = t + 1
 end
 
