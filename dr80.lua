@@ -1,3 +1,4 @@
+---@diagnostic disable: undefined-global
 -- title:   game title
 -- author:  game developer, email, etc.
 -- desc:    short description
@@ -14,39 +15,41 @@ local SFX = {
 	ROTATE = 2,
 	CLEAR = 3,
 	OVERFLOW = 4,
-	INVALID = 5
+	INVALID = 5,
 }
 
 local TRACK = {
- FLORA = 0,
- FEVER = 1
-} 
+	FLORA = 0,
+	FEVER = 1,
+}
 
 -- Global variables end --
 
 -- Audio manager --
 
 local Audio = {
-  bgm = nil,
-  reserved = {
-   sfx = 3,
-   bgm = {0,1,2}
-  }
+	bgm = nil,
+	reserved = {
+		sfx = 3,
+		bgm = { 0, 1, 2 },
+	},
 }
 
 function Audio.playBGM(track, loop)
-  if Audio.bgm == track then return end
-  music(track, 0, 0, loop ~= false)
-  Audio.bgm = track
+	if Audio.bgm == track then
+		return
+	end
+	music(track, 0, 0, loop ~= false)
+	Audio.bgm = track
 end
 
 function Audio.stopBGM()
- music(-1)
- Audio.bgm=nil
+	music(-1)
+	Audio.bgm = nil
 end
 
 function Audio.play(id, vol, spd)
-  sfx(id, nil, -1, Audio.reserved.sfx, vol or 15, spd or 0, false)
+	sfx(id, nil, -1, Audio.reserved.sfx, vol or 15, spd or 0, false)
 end
 
 -- Audio manager end --
@@ -54,13 +57,13 @@ end
 -- Game manager --
 
 local SCENES = {
- TITLE = 0,
- GAME = 1
+	TITLE = 0,
+	GAME = 1,
 }
 
 local Game = {
- scene = SCENES.GAME,
- grid 
+	scene = SCENES.GAME,
+	grid,
 }
 
 -- Game manager end --
@@ -68,82 +71,83 @@ local Game = {
 -- Grid manager --
 
 local BORDER = {
- TOPLEFT = 32,
- TOP = 33,
- TOPRIGHT = 34,
- LEFT = 48,
- CENTER = 49,
- RIGHT = 50,
- BOTTOMLEFT = 64,
- BOTTOM = 65,
- BOTTOMRIGHT = 66
+	TOPLEFT = 32,
+	TOP = 33,
+	TOPRIGHT = 34,
+	LEFT = 48,
+	CENTER = 49,
+	RIGHT = 50,
+	BOTTOMLEFT = 64,
+	BOTTOM = 65,
+	BOTTOMRIGHT = 66,
 }
 
 local Grid = {
- cell_size = 8,
+	cell_size = 8,
 	h = 16,
-	w = 10
+	w = 10,
 }
 
 function Grid.draw()
- for y=0,Grid.h-1 do
-  local cy = y*Grid.cell_size
- 	for x=0,Grid.w-1 do
-   local cx = x*Grid.cell_size
-  
-   if y==0 then
-   	
-    if x==0 then
-     spr(BORDER.TOPLEFT,cx,cy)
-    elseif x==Grid.w-1 then
-     spr(BORDER.TOPRIGHT,cx,cy)
-    else
-     spr(BORDER.TOP,cx,cy)
-    end
-   
-   elseif y==Grid.h-1 then
-  
-    if x==0 then
-     spr(BORDER.BOTTOMLEFT,cx,cy)
-    elseif x==Grid.w-1 then
-     spr(BORDER.BOTTOMRIGHT,cx,cy)
-    else
-     spr(BORDER.BOTTOM,cx,cy)
-    end
-    
-   else
-   
-    if x==0 then
-     spr(BORDER.LEFT,cx,cy)
-    elseif x==Grid.w-1 then
-     spr(BORDER.RIGHT,cx,cy)
-    else
-     spr(BORDER.CENTER,cx,cy)
-    end 
-   
-   end
- 	
-  end
-	end   
+	for y = 0, Grid.h - 1 do
+		local cy = y * Grid.cell_size
+		for x = 0, Grid.w - 1 do
+			local cx = x * Grid.cell_size
+
+			if y == 0 then
+				if x == 0 then
+					spr(BORDER.TOPLEFT, cx, cy)
+				elseif x == Grid.w - 1 then
+					spr(BORDER.TOPRIGHT, cx, cy)
+				else
+					spr(BORDER.TOP, cx, cy)
+				end
+			elseif y == Grid.h - 1 then
+				if x == 0 then
+					spr(BORDER.BOTTOMLEFT, cx, cy)
+				elseif x == Grid.w - 1 then
+					spr(BORDER.BOTTOMRIGHT, cx, cy)
+				else
+					spr(BORDER.BOTTOM, cx, cy)
+				end
+			else
+				if x == 0 then
+					spr(BORDER.LEFT, cx, cy)
+				elseif x == Grid.w - 1 then
+					spr(BORDER.RIGHT, cx, cy)
+				else
+					spr(BORDER.CENTER, cx, cy)
+				end
+			end
+		end
+	end
 end
 
 -- Grid manager end --
 
-t=0
-x=96
-y=24
+t = 0
+x = 96
+y = 24
 
 function TIC()
 	Audio.playBGM(TRACK.FLORA)
- 
-	if btn(0) then y=y-1 end
-	if btn(1) then y=y+1 end
-	if btn(2) then x=x-1 end
-	if btn(3) then x=x+1 end
+
+	if btn(0) then
+		y = y - 1
+	end
+	if btn(1) then
+		y = y + 1
+	end
+	if btn(2) then
+		x = x - 1
+	end
+	if btn(3) then
+		x = x + 1
+	end
 
 	cls(13)
 	Grid.draw()
-	t=t+1
+	t = t + 1
 end
 
 -- <TILES>
@@ -264,4 +268,3 @@ end
 -- <PALETTE>
 -- 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
 -- </PALETTE>
-
