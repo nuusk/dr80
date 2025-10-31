@@ -117,9 +117,9 @@ end
 -- Pill manager --
 
 local PILLS = {
-	{ name = "RED", sprite = 256 },
-	{ name = "YELLOW", sprite = 258 },
-	{ name = "BLUE", sprite = 260 },
+	{ name = "RED", left = 490, right = 491, top = 492, bottom = 508 },
+	{ name = "YELLOw", left = 506, right = 507, top = 493, bottom = 509 },
+	{ name = "BLUE", left = 488, right = 489, top = 494, bottom = 510 },
 }
 
 local Pills = {}
@@ -127,27 +127,18 @@ local Pills = {}
 function Pills.gen()
 	local tmp = PILLS
 	local li = math.random(1, #tmp)
-	local lh = tmp[li]
+	local left = tmp[li]
 	table.remove(tmp, li)
 	local ri = math.random(1, #tmp)
-	local rh = tmp[ri]
-	s = string.format("l: %s %s, r: %s %s", lh.name, lh.sprite, rh.name, rh.sprite)
+	local right = tmp[ri]
+	s = string.format("l: %s %s, r: %s %s", left.name, left.sprite, right.name, right.sprite)
 	Console.log(s)
 end
 
-local VIRUSES = {
-	YELLOW_1 = 274,
-	YELLOW_2 = 275,
-	YELLOW_3 = 290,
-	YELLOW_4 = 291,
-	BLUE_1 = 276,
-	BLUE_2 = 277,
-	BLUE_3 = 292,
-	BLUE_4 = 293,
-	RED_1 = 272,
-	RED_2 = 273,
-	RED_3 = 288,
-	RED_4 = 289,
+local RUNES = {
+	RUNE_R = 256,
+	RUNE_S = 272,
+	RUNE_E = 288,
 }
 
 -- Pill manager end --
@@ -425,4 +416,3 @@ end
 -- <PALETTE>
 -- 000:7d819d5d275dc23e53ef7d57fafafaffffe6ffd691a5757929366f3b5dc92091ff73eff71a1c2c94b0c2566c86333c57
 -- </PALETTE>
-
