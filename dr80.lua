@@ -219,12 +219,56 @@ function Grid.move_left()
 		return
 	end
 
-	-- TODO: check if moving is possible
-	Grid.active_binding.x = Grid.active_binding.x - 1
-	local x1 = nil
-	local x2 = nil
-	if Grid.active_binding.rotation == 0 then
+	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
+	if Grid.available(x1 - 1, y1) and Grid.available(x2 - 1, y2) then
+		Console.log("can move")
+		Grid.active_binding.x = Grid.active_binding.x - 1
+	else
+		Console.log("cannot move")
 	end
+end
+
+function Grid.move_right()
+	if Grid.active_binding == nil then
+		Console.log("error moving binding right - no active binding in game")
+		return
+	end
+
+	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
+	if Grid.available(x1 + 1, y1) and Grid.available(x2 + 1, y2) then
+		Console.log("can move")
+		Grid.active_binding.x = Grid.active_binding.x + 1
+	else
+		Console.log("cannot move")
+	end
+end
+
+function Grid.available(x, y)
+	if x < 0 or x > Grid.w - 1 then
+		return false
+	end
+
+	return true
+end
+
+function Grid.get_active_binding_xy()
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("error: active binding not found")
+		return
+	end
+
+	if active.rotation == 0 then
+		return active.x, active.y, active.x + 1, active.y
+	elseif active.rotation == 1 then
+		return active.x, active.y - 1, active.x, active.y
+	elseif active.rotation == 2 then
+		return active.x + 1, active.y, active.x, active.y
+	elseif active.rotation == 3 then
+		return active.x, active.y, active.x, active.y - 1
+	end
+
+	return nil, nil, nil, nil
 end
 
 function Grid.get_active_binding_x()
@@ -314,16 +358,6 @@ function Grid.get_active_binding_spr()
 	return spr1, spr2
 end
 
-function Grid.move_right()
-	if Grid.active_binding == nil then
-		Console.log("error moving binding right - no active binding in game")
-		return
-	end
-
-	-- TODO: check if moving is possible
-	Grid.active_binding.x = Grid.active_binding.x + 1
-end
-
 function Grid.draw_static_bindings()
 	for _, pill in ipairs(Grid.static_bindings) do
 		if pill == nil then
@@ -344,38 +378,6 @@ function Grid.draw_active_binding()
 		Console.log("cannot draw pill - no pill in game")
 		return
 	end
-
-	-- x and y point to the south-west corner
-	-- |-------|
-	-- |   |   |
-	-- |-------|
-	-- |x,y|   |
-	-- |-------|
-	-- -------------------------------------------------------------------------------------
-	-- rotation 0 is a base horizontal position with rune1 on the west and rune2 on the east
-	-- |-------|
-	-- |   |   |
-	-- |-------|
-	-- |(1)|(2)|
-	-- |-------|
-	-- rotation 1 is a vertical position with rune1 on north, rune2 on the south
-	-- |-------|
-	-- |(1)|   |
-	-- |-------|
-	-- |(2)|   |
-	-- |-------|
-	-- rotation 2 is a horizontal position with rune1 on east, rune2 on the west
-	-- |-------|
-	-- |   |   |
-	-- |-------|
-	-- |(2)|(1)|
-	-- |-------|
-	-- rotation 3 is a vertical position with rune1 on south, rune2 on the north
-	-- |-------|
-	-- |(2)|   |
-	-- |-------|
-	-- |(1)|   |
-	-- |-------|
 
 	local x1, x2 = Grid.get_active_binding_x()
 	local y1, y2 = Grid.get_active_binding_y()
