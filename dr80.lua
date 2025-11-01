@@ -145,8 +145,8 @@ local KEYMAP_P1 = {
 	RIGHT = 3,
 	UP = 0,
 	DOWN = 1,
-	A = 4,
-	B = 5,
+	A = 5,
+	B = 4,
 }
 
 -- Keymap end --
