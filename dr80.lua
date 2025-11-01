@@ -193,7 +193,6 @@ end
 
 -- rotate_a tries to rotate the binding clockwise.
 function Grid.rotate_a()
-	Console.log("rotating a")
 	if Grid.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
@@ -205,7 +204,6 @@ end
 
 -- rotate_b tries to rotate the binding counter-clockwise.
 function Grid.rotate_b()
-	Console.log("rorate b")
 	if Grid.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
@@ -213,6 +211,26 @@ function Grid.rotate_b()
 
 	-- TODO: check if rotation is possible
 	Grid.active_binding.rotation = (Grid.active_binding.rotation + 1) % 4
+end
+
+function Grid.move_left()
+	if Grid.active_binding == nil then
+		Console.log("error moving binding left - no active binding in game")
+		return
+	end
+
+	-- TODO: check if moving is possible
+	Grid.active_binding.x = Grid.active_binding.x - 1
+end
+
+function Grid.move_right()
+	if Grid.active_binding == nil then
+		Console.log("error moving binding right - no active binding in game")
+		return
+	end
+
+	-- TODO: check if moving is possible
+	Grid.active_binding.x = Grid.active_binding.x + 1
 end
 
 function Grid.draw_static_bindings()
@@ -408,8 +426,17 @@ function TIC()
 	if btnp(KEYMAP_P1.A) then
 		Grid.rotate_a()
 	end
+
 	if btnp(KEYMAP_P1.B) then
 		Grid.rotate_b()
+	end
+
+	if btnp(KEYMAP_P1.LEFT) then
+		Grid.move_left()
+	end
+
+	if btnp(KEYMAP_P1.RIGHT) then
+		Grid.move_right()
 	end
 
 	if t % inter == 0 then
