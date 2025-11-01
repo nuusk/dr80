@@ -265,16 +265,16 @@ function Grid.draw_active_binding()
 		y2 = active.y
 	-- rotation 1 is a vertical position with rune1 on north, rune2 on the south
 	-- |-------|
-	-- |   |(1)|
+	-- |(1)|   |
 	-- |-------|
-	-- |   |(2)|
+	-- |(2)|   |
 	-- |-------|
 	elseif active.rotation == 1 then
 		spr1 = active.rune1.N
-		x1 = active.x + 1
+		x1 = active.x
 		y1 = active.y - 1
 		spr2 = active.rune2.S
-		x2 = active.x + 1
+		x2 = active.x
 		y2 = active.y
 	-- rotation 2 is a horizontal position with rune1 on east, rune2 on the west
 	-- |-------|
@@ -291,16 +291,16 @@ function Grid.draw_active_binding()
 		y2 = active.y
 	-- rotation 3 is a vertical position with rune1 on south, rune2 on the north
 	-- |-------|
-	-- |   |(2)|
+	-- |(2)|   |
 	-- |-------|
-	-- |   |(1)|
+	-- |(1)|   |
 	-- |-------|
 	elseif active.rotation == 3 then
 		spr1 = active.rune1.S
-		x1 = active.x + 1
+		x1 = active.x
 		y1 = active.y
 		spr2 = active.rune2.N
-		x2 = active.x + 1
+		x2 = active.x
 		y2 = active.y - 1
 	else
 		Console.log("invalid rotation. this should never happen. fix the code")
