@@ -127,12 +127,12 @@ local Pills = {}
 function Pills.gen()
 	local tmp = PILLS
 	local li = math.random(1, #tmp)
-	local left = tmp[li]
-	table.remove(tmp, li)
 	local ri = math.random(1, #tmp)
+	local left = tmp[li]
 	local right = tmp[ri]
-	s = string.format("l: %s %s, r: %s %s", left.name, left.sprite, right.name, right.sprite)
+	s = string.format("l: %s, r: %s", left.name, right.name)
 	Console.log(s)
+	return { left = left, right = right }
 end
 
 local RUNES = {
@@ -142,28 +142,6 @@ local RUNES = {
 }
 
 -- Pill manager end --
-
--- Game manager --
-
-local SCENES = {
-	TITLE = 0,
-	GAME = 1,
-}
-
-local Game = {
-	scene = SCENES.GAME,
-	grid,
-	pill_on_scene = false,
-}
-
-function Game.eval()
-	if Game.pill_on_scene == false then
-		Pills.gen()
-		Game.pill_on_scene = true
-	end
-end
-
--- Game manager end --
 
 -- Grid manager --
 
@@ -183,7 +161,37 @@ local Grid = {
 	cell_size = 8,
 	h = 16,
 	w = 10,
+	pills = {},
 }
+
+function Grid.spawn(pill)
+	local spawnx = 0
+	if Grid.w % 2 == 0 then
+		spawnx = Grid.w / 2 - 1
+	else
+		spawnx = (Grid.w - 1) / 2
+	end
+	spawny = 0
+
+	positioned_pill = {
+		pill = pill,
+		x = spawnx,
+		y = spawny,
+		rot = 0,
+	}
+
+	table.insert(Grid.pills, positioned_pill)
+end
+
+function Grid.draw_pills()
+	for _, pill in ipairs(Grid.pills) do
+		local cx = pill.x * Grid.cell_size
+		local cy = pill.y * Grid.cell_size
+
+		spr(pill.pill.left.left, cx, cy)
+		spr(pill.pill.right.right, cx + Grid.cell_size, cy)
+	end
+end
 
 function Grid.draw()
 	for y = 0, Grid.h - 1 do
@@ -222,6 +230,29 @@ end
 
 -- Grid manager end --
 
+-- Game manager --
+
+local SCENES = {
+	TITLE = 0,
+	GAME = 1,
+}
+
+local Game = {
+	scene = SCENES.GAME,
+	pill_on_scene = false,
+}
+
+function Game.eval()
+	if Game.pill_on_scene == false then
+		local pill = Pills.gen()
+		Grid.spawn(pill)
+		Console.log(pill.left.name)
+		Game.pill_on_scene = true
+	end
+end
+
+-- Game manager end --
+
 t = 0
 x = 96
 y = 24
@@ -251,6 +282,7 @@ function TIC()
 
 	cls(13)
 	Grid.draw()
+	Grid.draw_pills()
 	Console.draw()
 	t = t + 1
 end
