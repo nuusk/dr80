@@ -138,6 +138,19 @@ local RUNESTONES = {
 
 -- Pill manager end --
 
+-- Keymap start --
+
+local KEYMAP_P1 = {
+	LEFT = 2,
+	RIGHT = 3,
+	UP = 0,
+	DOWN = 1,
+	A = 4,
+	B = 5,
+}
+
+-- Keymap end --
+
 -- Grid manager --
 
 local BORDER = {
@@ -178,7 +191,21 @@ function Grid.spawn(binding)
 	}
 end
 
-function Grid.rotate_binding()
+-- rotate_a tries to rotate the binding clockwise.
+function Grid.rotate_a()
+	Console.log("rotating a")
+	if Grid.active_binding == nil then
+		Console.log("error rotating binding - no active binding in game")
+		return
+	end
+
+	-- TODO: check if rotation is possible
+	Grid.active_binding.rotation = (Grid.active_binding.rotation + 1) % 4
+end
+
+-- rotate_b tries to rotate the binding counter-clockwise.
+function Grid.rotate_b()
+	Console.log("rorate b")
 	if Grid.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
@@ -209,11 +236,78 @@ function Grid.draw_active_binding()
 		return
 	end
 
-	local cx = active.x * Grid.cell_size
-	local cy = active.y * Grid.cell_size
+	local spr1 = nil
+	local spr2 = nil
+	local x1 = nil
+	local x2 = nil
+	local y1 = nil
+	local y2 = nil
 
-	spr(active.rune1.W, cx, cy)
-	spr(active.rune2.E, cx + Grid.cell_size, cy)
+	-- x and y point to the south-west corner
+	-- |-------|
+	-- |   |   |
+	-- |-------|
+	-- |x,y|   |
+	-- |-------|
+	-- -------------------------------------------------------------------------------------
+	-- rotation 0 is a base horizontal position with rune1 on the west and rune2 on the east
+	-- |-------|
+	-- |   |   |
+	-- |-------|
+	-- |(1)|(2)|
+	-- |-------|
+	if active.rotation == 0 then
+		spr1 = active.rune1.W
+		x1 = active.x
+		y1 = active.y
+		spr2 = active.rune2.E
+		x2 = active.x + 1
+		y2 = active.y
+	-- rotation 1 is a vertical position with rune1 on north, rune2 on the south
+	-- |-------|
+	-- |   |(1)|
+	-- |-------|
+	-- |   |(2)|
+	-- |-------|
+	elseif active.rotation == 1 then
+		spr1 = active.rune1.N
+		x1 = active.x + 1
+		y1 = active.y - 1
+		spr2 = active.rune2.S
+		x2 = active.x + 1
+		y2 = active.y
+	-- rotation 2 is a horizontal position with rune1 on east, rune2 on the west
+	-- |-------|
+	-- |   |   |
+	-- |-------|
+	-- |(2)|(1)|
+	-- |-------|
+	elseif active.rotation == 2 then
+		spr1 = active.rune1.E
+		x1 = active.x + 1
+		y1 = active.y
+		spr2 = active.rune2.W
+		x2 = active.x
+		y2 = active.y
+	-- rotation 3 is a vertical position with rune1 on south, rune2 on the north
+	-- |-------|
+	-- |   |(2)|
+	-- |-------|
+	-- |   |(1)|
+	-- |-------|
+	elseif active.rotation == 3 then
+		spr1 = active.rune1.S
+		x1 = active.x + 1
+		y1 = active.y
+		spr2 = active.rune2.N
+		x2 = active.x + 1
+		y2 = active.y - 1
+	else
+		Console.log("invalid rotation. this should never happen. fix the code")
+	end
+
+	spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
+	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
 end
 
 function Grid.grav()
@@ -226,7 +320,7 @@ function Grid.grav()
 	active.y = active.y + 1
 end
 
-function Grid.draw()
+function Grid.draw_border()
 	for y = 0, Grid.h - 1 do
 		local cy = y * Grid.cell_size
 		for x = 0, Grid.w - 1 do
@@ -311,13 +405,20 @@ function TIC()
 		x = x + 1
 	end
 
+	if btnp(KEYMAP_P1.A) then
+		Grid.rotate_a()
+	end
+	if btnp(KEYMAP_P1.B) then
+		Grid.rotate_b()
+	end
+
 	if t % inter == 0 then
 		Game.eval()
 	end
 
 	cls(13)
 	-- Grid.draw_static_bindings()()
-	Grid.draw()
+	Grid.draw_border()
 	Grid.draw_active_binding()
 	Console.draw()
 	t = t + 1
