@@ -221,6 +221,97 @@ function Grid.move_left()
 
 	-- TODO: check if moving is possible
 	Grid.active_binding.x = Grid.active_binding.x - 1
+	local x1 = nil
+	local x2 = nil
+	if Grid.active_binding.rotation == 0 then
+	end
+end
+
+function Grid.get_active_binding_x()
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("error: no active binding found")
+		return
+	end
+
+	local x1 = nil
+	local x2 = nil
+	if active.rotation == 0 then
+		x1 = active.x
+		x2 = active.x + 1
+	elseif active.rotation == 1 then
+		x1 = active.x
+		x2 = active.x
+	elseif active.rotation == 2 then
+		x1 = active.x + 1
+		x2 = active.x
+	elseif active.rotation == 3 then
+		x1 = active.x
+		x2 = active.x
+	else
+		Console.log("error: unknown rotation")
+		return
+	end
+
+	return x1, x2
+end
+
+function Grid.get_active_binding_y()
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("error: no active binding found")
+		return
+	end
+
+	local y1 = nil
+	local y2 = nil
+	if active.rotation == 0 then
+		y1 = active.y
+		y2 = active.y
+	elseif active.rotation == 1 then
+		y1 = active.y - 1
+		y2 = active.y
+	elseif active.rotation == 2 then
+		y1 = active.y
+		y2 = active.y
+	elseif active.rotation == 3 then
+		y1 = active.y
+		y2 = active.y - 1
+	else
+		Console.log("error: unknown rotation")
+		return
+	end
+
+	return y1, y2
+end
+
+function Grid.get_active_binding_spr()
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("error: no active binding found")
+		return
+	end
+
+	local spr1 = nil
+	local spr2 = nil
+	if active.rotation == 0 then
+		spr1 = active.rune1.W
+		spr2 = active.rune2.E
+	elseif active.rotation == 1 then
+		spr1 = active.rune1.N
+		spr2 = active.rune2.S
+	elseif active.rotation == 2 then
+		spr1 = active.rune1.E
+		spr2 = active.rune2.W
+	elseif active.rotation == 3 then
+		spr1 = active.rune1.S
+		spr2 = active.rune2.N
+	else
+		Console.log("error: unknown rotation")
+		return
+	end
+
+	return spr1, spr2
 end
 
 function Grid.move_right()
@@ -254,13 +345,6 @@ function Grid.draw_active_binding()
 		return
 	end
 
-	local spr1 = nil
-	local spr2 = nil
-	local x1 = nil
-	local x2 = nil
-	local y1 = nil
-	local y2 = nil
-
 	-- x and y point to the south-west corner
 	-- |-------|
 	-- |   |   |
@@ -274,55 +358,28 @@ function Grid.draw_active_binding()
 	-- |-------|
 	-- |(1)|(2)|
 	-- |-------|
-	if active.rotation == 0 then
-		spr1 = active.rune1.W
-		x1 = active.x
-		y1 = active.y
-		spr2 = active.rune2.E
-		x2 = active.x + 1
-		y2 = active.y
 	-- rotation 1 is a vertical position with rune1 on north, rune2 on the south
 	-- |-------|
 	-- |(1)|   |
 	-- |-------|
 	-- |(2)|   |
 	-- |-------|
-	elseif active.rotation == 1 then
-		spr1 = active.rune1.N
-		x1 = active.x
-		y1 = active.y - 1
-		spr2 = active.rune2.S
-		x2 = active.x
-		y2 = active.y
 	-- rotation 2 is a horizontal position with rune1 on east, rune2 on the west
 	-- |-------|
 	-- |   |   |
 	-- |-------|
 	-- |(2)|(1)|
 	-- |-------|
-	elseif active.rotation == 2 then
-		spr1 = active.rune1.E
-		x1 = active.x + 1
-		y1 = active.y
-		spr2 = active.rune2.W
-		x2 = active.x
-		y2 = active.y
 	-- rotation 3 is a vertical position with rune1 on south, rune2 on the north
 	-- |-------|
 	-- |(2)|   |
 	-- |-------|
 	-- |(1)|   |
 	-- |-------|
-	elseif active.rotation == 3 then
-		spr1 = active.rune1.S
-		x1 = active.x
-		y1 = active.y
-		spr2 = active.rune2.N
-		x2 = active.x
-		y2 = active.y - 1
-	else
-		Console.log("invalid rotation. this should never happen. fix the code")
-	end
+
+	local x1, x2 = Grid.get_active_binding_x()
+	local y1, y2 = Grid.get_active_binding_y()
+	local spr1, spr2 = Grid.get_active_binding_spr()
 
 	spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
 	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
