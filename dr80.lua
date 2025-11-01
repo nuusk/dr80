@@ -1,4 +1,3 @@
----@diagnostic disable: undefined-global, lowercase-global
 -- title:   game title
 -- author:  game developer, email, etc.
 -- desc:    short description
@@ -116,26 +115,22 @@ end
 
 -- Pill manager --
 
-local PILLS = {
-	{ name = "RED", left = 490, right = 491, top = 492, bottom = 508 },
-	{ name = "YELLOw", left = 506, right = 507, top = 493, bottom = 509 },
-	{ name = "BLUE", left = 488, right = 489, top = 494, bottom = 510 },
+local RUNES = {
+	{ name = "RED", W = 490, E = 491, N = 492, S = 508 },
+	{ name = "YELLOw", W = 506, E = 507, N = 493, S = 509 },
+	{ name = "BLUE", W = 488, E = 489, N = 494, S = 510 },
 }
 
-local Pills = {}
+local Runes = {}
 
-function Pills.gen()
-	local tmp = PILLS
-	local li = math.random(1, #tmp)
-	local ri = math.random(1, #tmp)
-	local left = tmp[li]
-	local right = tmp[ri]
-	s = string.format("l: %s, r: %s", left.name, right.name)
-	Console.log(s)
-	return { left = left, right = right }
+function Runes.gen_binding_rune()
+	local rune1 = RUNES[math.random(1, #RUNES)]
+	local rune2 = RUNES[math.random(1, #RUNES)]
+	Console.log(string.format("l: %s, r: %s", rune1.name, rune2.name))
+	return { rune1 = rune1, rune2 = rune2 }
 end
 
-local RUNES = {
+local RUNESTONES = {
 	RUNE_R = 256,
 	RUNE_S = 272,
 	RUNE_E = 288,
@@ -161,42 +156,74 @@ local Grid = {
 	cell_size = 8,
 	h = 16,
 	w = 10,
-	pills = {},
+	static_bindings = {},
+	active_binding = nil,
 }
 
-function Grid.spawn(pill)
+function Grid.spawn(binding)
 	local spawnx = 0
 	if Grid.w % 2 == 0 then
 		spawnx = Grid.w / 2 - 1
 	else
 		spawnx = (Grid.w - 1) / 2
 	end
-	spawny = 0
+	local spawny = 0
 
-	positioned_pill = {
-		pill = pill,
+	Grid.active_binding = {
+		rune1 = binding.rune1,
+		rune2 = binding.rune2,
 		x = spawnx,
 		y = spawny,
-		rot = 0,
+		rotation = 0,
 	}
-
-	table.insert(Grid.pills, positioned_pill)
 end
 
-function Grid.draw_pills()
-	for _, pill in ipairs(Grid.pills) do
+function Grid.rotate_binding()
+	if Grid.active_binding == nil then
+		Console.log("error rotating binding - no active binding in game")
+		return
+	end
+
+	-- TODO: check if rotation is possible
+	Grid.active_binding.rotation = (Grid.active_binding.rotation + 1) % 4
+end
+
+function Grid.draw_static_bindings()
+	for _, pill in ipairs(Grid.static_bindings) do
+		if pill == nil then
+			Console.log("static pill is nil")
+			return
+		end
+
 		local cx = pill.x * Grid.cell_size
 		local cy = pill.y * Grid.cell_size
 
-		spr(pill.pill.left.left, cx, cy)
-		spr(pill.pill.right.right, cx + Grid.cell_size, cy)
+		-- find appropriate sprite to draw
 	end
 end
 
-function Grid.grav()
-	for _, pill in ipairs(Grid.pills) do
-		pill.y = pill.y + 1
+function Grid.draw_active_binding()
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("cannot draw pill - no pill in game")
+		return
 	end
+
+	local cx = active.x * Grid.cell_size
+	local cy = active.y * Grid.cell_size
+
+	spr(active.rune1.W, cx, cy)
+	spr(active.rune2.E, cx + Grid.cell_size, cy)
+end
+
+function Grid.grav()
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("cannot draw pill - no pill in game")
+		return
+	end
+
+	active.y = active.y + 1
 end
 
 function Grid.draw()
@@ -250,9 +277,9 @@ local Game = {
 
 function Game.eval()
 	if Game.pill_on_scene == false then
-		local pill = Pills.gen()
+		local pill = Runes.gen_binding_rune()
 		Grid.spawn(pill)
-		Console.log(pill.left.name)
+		Console.log(pill.rune1.name)
 		Game.pill_on_scene = true
 	else
 		Grid.grav()
@@ -289,8 +316,9 @@ function TIC()
 	end
 
 	cls(13)
+	-- Grid.draw_static_bindings()()
 	Grid.draw()
-	Grid.draw_pills()
+	Grid.draw_active_binding()
 	Console.draw()
 	t = t + 1
 end
