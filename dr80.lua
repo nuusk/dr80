@@ -193,6 +193,12 @@ function Grid.draw_pills()
 	end
 end
 
+function Grid.grav()
+	for _, pill in ipairs(Grid.pills) do
+		pill.y = pill.y + 1
+	end
+end
+
 function Grid.draw()
 	for y = 0, Grid.h - 1 do
 		local cy = y * Grid.cell_size
@@ -248,6 +254,8 @@ function Game.eval()
 		Grid.spawn(pill)
 		Console.log(pill.left.name)
 		Game.pill_on_scene = true
+	else
+		Grid.grav()
 	end
 end
 
