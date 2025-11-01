@@ -6,6 +6,8 @@
 -- version: 0.1
 -- script:  lua
 
+math.randomseed(tstamp())
+
 Console = {
 	open = true,
 	lines = {},
@@ -130,12 +132,6 @@ function Runes.gen_binding_rune()
 	return { rune1 = rune1, rune2 = rune2 }
 end
 
-local RUNESTONES = {
-	RUNE_R = 256,
-	RUNE_S = 272,
-	RUNE_E = 288,
-}
-
 -- Pill manager end --
 
 -- Keymap start --
@@ -171,9 +167,90 @@ local Grid = {
 	w = 10,
 	static_bindings = {},
 	active_binding = nil,
+	stones = {},
 }
 
-function Grid.spawn(binding)
+local STONES = {
+	{ name = "R", spr = 256 },
+	{ name = "S", spr = 272 },
+	{ name = "E", spr = 288 },
+}
+
+function Grid.generate_stones(level)
+	local presets = {
+		[1] = { n = 3, safe = 0.55 },
+		[2] = { n = 5, safe = 0.50 },
+		[3] = { n = 8, safe = 0.45 },
+		[4] = { n = 12, safe = 0.40 },
+		[5] = { n = 17, safe = 0.35 },
+		[6] = { n = 23, safe = 0.30 },
+		[7] = { n = 30, safe = 0.25 },
+		[8] = { n = 38, safe = 0.20 },
+		[9] = { n = 47, safe = 0.15 },
+		[10] = { n = 57, safe = 0.10 },
+	}
+	local preset = presets[level]
+	if not preset then
+		Console.log("level too high")
+		return {}
+	end
+
+	local stones = {}
+
+	local h_start = math.floor(preset.safe * Grid.h)
+	local bag = {}
+
+	for ly = h_start, Grid.h - 1, 1 do
+		for lx = 0, Grid.w - 1, 1 do
+			table.insert(bag, { x = lx, y = ly })
+		end
+	end
+
+	-- generate red
+	local rand_num = math.random(#bag)
+	local rand_pos = bag[rand_num]
+	table.remove(bag, rand_num)
+	table.insert(stones, {
+		name = "R",
+		spr = 256,
+		x = rand_pos.x,
+		y = rand_pos.y,
+	})
+
+	-- generate yellow
+	rand_num = math.random(#bag)
+	rand_pos = bag[rand_num]
+	table.remove(bag, rand_num)
+	table.insert(stones, {
+		name = "S",
+		spr = 272,
+		x = rand_pos.x,
+		y = rand_pos.y,
+	})
+
+	-- generate blue
+	rand_num = math.random(#bag)
+	rand_pos = bag[rand_num]
+	table.remove(bag, rand_num)
+	table.insert(stones, {
+		name = "E",
+		spr = 288,
+		x = rand_pos.x,
+		y = rand_pos.y,
+	})
+
+	-- TODO: add more stones if level is higher than 1
+
+	Grid.stones = stones
+end
+
+function Grid.draw_stones()
+	for _, stone in ipairs(Grid.stones) do
+		spr(stone.spr, stone.x * Grid.cell_size, stone.y * Grid.cell_size)
+	end
+end
+
+function Grid.spawn_binding(binding)
 	local spawnx = 0
 	if Grid.w % 2 == 0 then
 		spawnx = Grid.w / 2 - 1
@@ -191,8 +268,7 @@ function Grid.spawn(binding)
 	}
 end
 
--- rotate_a tries to rotate the binding clockwise.
-function Grid.rotate_a()
+function Grid.rotate_clockwise()
 	if Grid.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
@@ -208,8 +284,7 @@ function Grid.rotate_a()
 	end
 end
 
--- rotate_b tries to rotate the binding counter-clockwise.
-function Grid.rotate_b()
+function Grid.rotate_counterclockwise()
 	if Grid.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
@@ -471,7 +546,7 @@ local Game = {
 function Game.eval()
 	if Game.pill_on_scene == false then
 		local pill = Runes.gen_binding_rune()
-		Grid.spawn(pill)
+		Grid.spawn_binding(pill)
 		Console.log(pill.rune1.name)
 		Game.pill_on_scene = true
 	else
@@ -485,6 +560,8 @@ t = 0
 x = 96
 y = 24
 inter = 60
+
+Grid.generate_stones(1)
 
 function TIC()
 	Audio.playBGM(TRACK.FLORA)
@@ -505,11 +582,11 @@ function TIC()
 	end
 
 	if btnp(KEYMAP_P1.A) then
-		Grid.rotate_a()
+		Grid.rotate_clockwise()
 	end
 
 	if btnp(KEYMAP_P1.B) then
-		Grid.rotate_b()
+		Grid.rotate_counterclockwise()
 	end
 
 	if btnp(KEYMAP_P1.LEFT) then
@@ -527,6 +604,7 @@ function TIC()
 	cls(13)
 	-- Grid.draw_static_bindings()()
 	Grid.draw_border()
+	Grid.draw_stones()
 	Grid.draw_active_binding()
 	Console.draw()
 	t = t + 1
