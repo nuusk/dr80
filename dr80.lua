@@ -198,8 +198,14 @@ function Grid.rotate_a()
 		return
 	end
 
-	-- TODO: check if rotation is possible
-	Grid.active_binding.rotation = (Grid.active_binding.rotation + 1) % 4
+	local next_rotation = (Grid.active_binding.rotation + 1) % 4
+	local x1, y1, x2, y2 = Grid.get_binding_xy(next_rotation)
+	if Grid.available(x1, y1) and Grid.available(x2, y2) then
+		Console.log("can rotate")
+		Grid.active_binding.rotation = next_rotation
+	else
+		Console.log("cannot rotate")
+	end
 end
 
 -- rotate_b tries to rotate the binding counter-clockwise.
@@ -209,8 +215,14 @@ function Grid.rotate_b()
 		return
 	end
 
-	-- TODO: check if rotation is possible
-	Grid.active_binding.rotation = (Grid.active_binding.rotation + 1) % 4
+	local next_rotation = (Grid.active_binding.rotation + 3) % 4
+	local x1, y1, x2, y2 = Grid.get_binding_xy(next_rotation)
+	if Grid.available(x1, y1) and Grid.available(x2, y2) then
+		Console.log("can rotate")
+		Grid.active_binding.rotation = next_rotation
+	else
+		Console.log("cannot rotate")
+	end
 end
 
 function Grid.move_left()
@@ -258,13 +270,23 @@ function Grid.get_active_binding_xy()
 		return
 	end
 
-	if active.rotation == 0 then
+	return Grid.get_binding_xy(Grid.active_binding.rotation)
+end
+
+function Grid.get_binding_xy(rotation)
+	local active = Grid.active_binding
+	if active == nil then
+		Console.log("error: active binding not found")
+		return
+	end
+
+	if rotation == 0 then
 		return active.x, active.y, active.x + 1, active.y
-	elseif active.rotation == 1 then
+	elseif rotation == 1 then
 		return active.x, active.y - 1, active.x, active.y
-	elseif active.rotation == 2 then
+	elseif rotation == 2 then
 		return active.x + 1, active.y, active.x, active.y
-	elseif active.rotation == 3 then
+	elseif rotation == 3 then
 		return active.x, active.y, active.x, active.y - 1
 	end
 
