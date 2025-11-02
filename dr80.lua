@@ -446,9 +446,10 @@ function Grid.grav()
 		return
 	end
 
-	local next_y = active.y + 1
-	if Grid.available(active.x, next_y) then
-		active.y = next_y
+	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
+
+	if Grid.available(x1, y1 + 1) and Grid.available(x2, y2 + 1) then
+		active.y = active.y + 1
 	else
 		Audio.play(SFX.INVALID)
 	end
