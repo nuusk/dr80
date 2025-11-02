@@ -7,6 +7,14 @@
 -- script:  lua
 math.randomseed(tstamp())
 
+function table.shallow_copy(t)
+	local t2 = {}
+	for k, v in pairs(t) do
+		t2[k] = v
+	end
+	return t2
+end
+
 Console = {
 	open = true,
 	lines = {},
@@ -350,7 +358,7 @@ function Grid.available(x, y)
 end
 
 function Grid.get_binding_xy(binding, rotation)
-	binding = Grid.active_binding or binding
+	binding = binding or Grid.active_binding
 	rotation = rotation or binding.rotation
 	if rotation == 0 then
 		return binding.x, binding.y, binding.x + 1, binding.y
@@ -396,12 +404,17 @@ function Grid.draw_static_bindings()
 		local x1, y1, x2, y2 = Grid.get_binding_xy(binding)
 		local spr1, spr2 = Grid.get_binding_spr(binding)
 
+		Console.log(x1)
+
 		spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
 		spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
 	end
 end
 
 function Grid.draw_active_binding()
+	if Grid.pill_on_scene == false then
+		return
+	end
 	local active = Grid.active_binding
 	if active == nil then
 		Console.log("cannot draw pill - no pill in game")
@@ -437,8 +450,8 @@ function Grid.mark_active_binding_as_static()
 		return
 	end
 
-	local active = Grid.active_binding
-	table.insert(Grid.static_bindings, active)
+	local binding_copy = table.shallow_copy(Grid.active_binding)
+	table.insert(Grid.static_bindings, binding_copy)
 
 	Grid.pill_on_scene = false
 	Grid.active_binding = nil
@@ -551,9 +564,9 @@ function TIC()
 	end
 
 	cls(13)
-	Grid.draw_static_bindings()
 	Grid.draw_border()
 	Grid.draw_stones()
+	Grid.draw_static_bindings()
 	Grid.draw_active_binding()
 	Console.draw()
 	t = t + 1
