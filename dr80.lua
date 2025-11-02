@@ -5,7 +5,6 @@
 -- license: MIT License (change this to your license of choice)
 -- version: 0.1
 -- script:  lua
-
 math.randomseed(tstamp())
 
 Console = {
@@ -284,12 +283,11 @@ function Grid.rotate_clockwise()
 	end
 
 	local next_rotation = (Grid.active_binding.rotation + 1) % 4
-	local x1, y1, x2, y2 = Grid.get_binding_xy(next_rotation)
+	local x1, y1, x2, y2 = Grid.get_binding_xy(Grid.active_binding, next_rotation)
 	if Grid.available(x1, y1) and Grid.available(x2, y2) then
-		Console.log("can rotate")
 		Grid.active_binding.rotation = next_rotation
 	else
-		Console.log("cannot rotate")
+		Audio.play(SFX.INVALID)
 	end
 end
 
@@ -300,12 +298,11 @@ function Grid.rotate_counterclockwise()
 	end
 
 	local next_rotation = (Grid.active_binding.rotation + 3) % 4
-	local x1, y1, x2, y2 = Grid.get_binding_xy(next_rotation)
+	local x1, y1, x2, y2 = Grid.get_binding_xy(Grid.active_binding, next_rotation)
 	if Grid.available(x1, y1) and Grid.available(x2, y2) then
-		Console.log("can rotate")
 		Grid.active_binding.rotation = next_rotation
 	else
-		Console.log("cannot rotate")
+		Audio.play(SFX.INVALID)
 	end
 end
 
@@ -315,7 +312,7 @@ function Grid.move_left()
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
+	local x1, y1, x2, y2 = Grid.get_binding_xy()
 	if Grid.available(x1 - 1, y1) and Grid.available(x2 - 1, y2) then
 		Console.log("can move")
 		Grid.active_binding.x = Grid.active_binding.x - 1
@@ -330,7 +327,7 @@ function Grid.move_right()
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
+	local x1, y1, x2, y2 = Grid.get_binding_xy()
 	if Grid.available(x1 + 1, y1) and Grid.available(x2 + 1, y2) then
 		Console.log("can move")
 		Grid.active_binding.x = Grid.active_binding.x + 1
@@ -352,65 +349,40 @@ function Grid.available(x, y)
 	return true
 end
 
-function Grid.get_active_binding_xy()
-	local active = Grid.active_binding
-	if active == nil then
-		Console.log("error: active binding not found")
-		return
-	end
-
-	return Grid.get_binding_xy(Grid.active_binding.rotation)
-end
-
-function Grid.get_binding_xy(rotation)
-	local active = Grid.active_binding
-	if active == nil then
-		Console.log("error: active binding not found")
-		return
-	end
-
+function Grid.get_binding_xy(binding, rotation)
+	binding = Grid.active_binding or binding
+	rotation = rotation or binding.rotation
 	if rotation == 0 then
-		return active.x, active.y, active.x + 1, active.y
+		return binding.x, binding.y, binding.x + 1, binding.y
 	elseif rotation == 1 then
-		return active.x, active.y - 1, active.x, active.y
+		return binding.x, binding.y - 1, binding.x, binding.y
 	elseif rotation == 2 then
-		return active.x + 1, active.y, active.x, active.y
+		return binding.x + 1, binding.y, binding.x, binding.y
 	elseif rotation == 3 then
-		return active.x, active.y, active.x, active.y - 1
+		return binding.x, binding.y, binding.x, binding.y - 1
 	end
 
 	return nil, nil, nil, nil
 end
 
-function Grid.get_active_binding_spr()
-	return Grid.get_binding_spr(Grid.active_binding)
-end
-
 function Grid.get_binding_spr(binding)
-	if binding == nil then
-		Console.log("cannot get binding spr: binding is nil")
+	binding = binding or Grid.active_binding
+	if not binding then
+		Console.log("error: binding not found")
 		return
 	end
 
-	local spr1 = nil
-	local spr2 = nil
-	if binding.rotation == 0 then
-		spr1 = binding.rune1.W
-		spr2 = binding.rune2.E
-	elseif binding.rotation == 1 then
-		spr1 = binding.rune1.N
-		spr2 = binding.rune2.S
-	elseif binding.rotation == 2 then
-		spr1 = binding.rune1.E
-		spr2 = binding.rune2.W
-	elseif binding.rotation == 3 then
-		spr1 = binding.rune1.S
-		spr2 = binding.rune2.N
-	else
-		Console.log("error: unknown rotation")
-		return
-	end
+	local rotation = (binding.rotation or 0) % 4
+	local dir = {
+		[0] = { "W", "E" },
+		[1] = { "N", "S" },
+		[2] = { "E", "W" },
+		[3] = { "S", "N" },
+	}
+	local pair = dir[rotation]
 
+	local spr1 = binding.rune1[pair[1]]
+	local spr2 = binding.rune2[pair[2]]
 	return spr1, spr2
 end
 
@@ -436,8 +408,8 @@ function Grid.draw_active_binding()
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
-	local spr1, spr2 = Grid.get_active_binding_spr()
+	local x1, y1, x2, y2 = Grid.get_binding_xy()
+	local spr1, spr2 = Grid.get_binding_spr()
 
 	spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
 	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
@@ -449,7 +421,7 @@ function Grid.grav()
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_active_binding_xy()
+	local x1, y1, x2, y2 = Grid.get_binding_xy()
 
 	if Grid.available(x1, y1 + 1) and Grid.available(x2, y2 + 1) then
 		active.y = active.y + 1
