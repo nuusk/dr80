@@ -344,13 +344,28 @@ function Grid.move_right()
 	end
 end
 
+-- instead of bunch of for loops, prepare a table / dictionary to quickly check availability
 function Grid.available(x, y)
 	if x < 0 or x > Grid.w - 1 then
 		return false
 	end
 
+	if y >= Grid.h then
+		return false
+	end
+
 	for _, stone in ipairs(Grid.stones) do
 		if stone.x == x and stone.y == y then
+			return false
+		end
+	end
+
+	for _, static in ipairs(Grid.static_bindings) do
+		local x1, y1, x2, y2 = Grid.get_binding_xy(static)
+		if x1 == x and y1 == y then
+			return false
+		end
+		if x2 == x and y2 == y then
 			return false
 		end
 	end
