@@ -383,26 +383,29 @@ function Grid.get_binding_xy(rotation)
 end
 
 function Grid.get_active_binding_spr()
-	local active = Grid.active_binding
-	if active == nil then
-		Console.log("error: no active binding found")
+	return Grid.get_binding_spr(Grid.active_binding)
+end
+
+function Grid.get_binding_spr(binding)
+	if binding == nil then
+		Console.log("cannot get binding spr: binding is nil")
 		return
 	end
 
 	local spr1 = nil
 	local spr2 = nil
-	if active.rotation == 0 then
-		spr1 = active.rune1.W
-		spr2 = active.rune2.E
-	elseif active.rotation == 1 then
-		spr1 = active.rune1.N
-		spr2 = active.rune2.S
-	elseif active.rotation == 2 then
-		spr1 = active.rune1.E
-		spr2 = active.rune2.W
-	elseif active.rotation == 3 then
-		spr1 = active.rune1.S
-		spr2 = active.rune2.N
+	if binding.rotation == 0 then
+		spr1 = binding.rune1.W
+		spr2 = binding.rune2.E
+	elseif binding.rotation == 1 then
+		spr1 = binding.rune1.N
+		spr2 = binding.rune2.S
+	elseif binding.rotation == 2 then
+		spr1 = binding.rune1.E
+		spr2 = binding.rune2.W
+	elseif binding.rotation == 3 then
+		spr1 = binding.rune1.S
+		spr2 = binding.rune2.N
 	else
 		Console.log("error: unknown rotation")
 		return
@@ -412,16 +415,17 @@ function Grid.get_active_binding_spr()
 end
 
 function Grid.draw_static_bindings()
-	for _, pill in ipairs(Grid.static_bindings) do
-		if pill == nil then
+	for _, binding in ipairs(Grid.static_bindings) do
+		if binding == nil then
 			Console.log("static pill is nil")
 			return
 		end
 
-		local cx = pill.x * Grid.cell_size
-		local cy = pill.y * Grid.cell_size
+		local x1, y1, x2, y2 = Grid.get_binding_xy(binding)
+		local spr1, spr2 = Grid.get_binding_spr(binding)
 
-		-- find appropriate sprite to draw
+		spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
+		spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
 	end
 end
 
@@ -442,7 +446,6 @@ end
 function Grid.grav()
 	local active = Grid.active_binding
 	if active == nil then
-		Console.log("cannot draw pill - no pill in game")
 		return
 	end
 
@@ -451,8 +454,22 @@ function Grid.grav()
 	if Grid.available(x1, y1 + 1) and Grid.available(x2, y2 + 1) then
 		active.y = active.y + 1
 	else
-		Audio.play(SFX.INVALID)
+		Audio.play(SFX.DROP)
+		Grid.mark_active_binding_as_static()
 	end
+end
+
+function Grid.mark_active_binding_as_static()
+	if Grid.active_binding == nil then
+		Console.log("cannot mark binding as static, active binding not found")
+		return
+	end
+
+	local active = Grid.active_binding
+	table.insert(Grid.static_bindings, active)
+
+	Grid.pill_on_scene = false
+	Grid.active_binding = nil
 end
 
 function Grid.draw_border()
@@ -562,7 +579,7 @@ function TIC()
 	end
 
 	cls(13)
-	-- Grid.draw_static_bindings()()
+	Grid.draw_static_bindings()
 	Grid.draw_border()
 	Grid.draw_stones()
 	Grid.draw_active_binding()
