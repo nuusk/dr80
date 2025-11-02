@@ -168,6 +168,8 @@ local Grid = {
 	static_bindings = {},
 	active_binding = nil,
 	stones = {},
+	pill_on_scene = false,
+	interval = 60,
 }
 
 local STONES = {
@@ -175,6 +177,13 @@ local STONES = {
 	{ name = "S", spr = 272 },
 	{ name = "E", spr = 288 },
 }
+
+function Grid.effective_interval()
+	if btn(KEYMAP_P1.DOWN) then
+		return Grid.interval / 10
+	end
+	return Grid.interval
+end
 
 function Grid.generate_stones(level)
 	local presets = {
@@ -437,7 +446,12 @@ function Grid.grav()
 		return
 	end
 
-	active.y = active.y + 1
+	local next_y = active.y + 1
+	if Grid.available(active.x, next_y) then
+		active.y = next_y
+	else
+		Audio.play(SFX.INVALID)
+	end
 end
 
 function Grid.draw_border()
@@ -489,12 +503,11 @@ local Game = {
 	pill_on_scene = false,
 }
 
-function Game.eval()
-	if Game.pill_on_scene == false then
+function Grid.eval()
+	if Grid.pill_on_scene == false then
 		local pill = Runes.gen_binding_rune()
 		Grid.spawn_binding(pill)
-		Console.log(pill.rune1.name)
-		Game.pill_on_scene = true
+		Grid.pill_on_scene = true
 	else
 		Grid.grav()
 	end
@@ -543,8 +556,8 @@ function TIC()
 		Grid.move_right()
 	end
 
-	if t % inter == 0 then
-		Game.eval()
+	if t % Grid.effective_interval() == 0 then
+		Grid.eval()
 	end
 
 	cls(13)
