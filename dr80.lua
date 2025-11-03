@@ -322,10 +322,9 @@ function Grid.move_left()
 
 	local x1, y1, x2, y2 = Grid.get_binding_xy()
 	if Grid.available(x1 - 1, y1) and Grid.available(x2 - 1, y2) then
-		Console.log("can move")
 		Grid.active_binding.x = Grid.active_binding.x - 1
 	else
-		Console.log("cannot move")
+		Audio.play(SFX.INVALID)
 	end
 end
 
@@ -337,10 +336,9 @@ function Grid.move_right()
 
 	local x1, y1, x2, y2 = Grid.get_binding_xy()
 	if Grid.available(x1 + 1, y1) and Grid.available(x2 + 1, y2) then
-		Console.log("can move")
 		Grid.active_binding.x = Grid.active_binding.x + 1
 	else
-		Console.log("cannot move")
+		Audio.play(SFX.INVALID)
 	end
 end
 
