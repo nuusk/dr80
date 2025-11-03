@@ -125,9 +125,9 @@ end
 -- Pill manager --
 
 local RUNES = {
-	{ name = "RED", W = 490, E = 491, N = 492, S = 508 },
-	{ name = "YELLOw", W = 506, E = 507, N = 493, S = 509 },
-	{ name = "BLUE", W = 488, E = 489, N = 494, S = 510 },
+	{ name = "R", W = 490, E = 491, N = 492, S = 508 },
+	{ name = "S", W = 506, E = 507, N = 493, S = 509 },
+	{ name = "E", W = 488, E = 489, N = 494, S = 510 },
 }
 
 local Runes = {}
@@ -174,7 +174,7 @@ local Grid = {
 	w = 10,
 	static_bindings = {},
 	active_binding = nil,
-	stones = {},
+	board = {},
 	pill_on_scene = false,
 	interval = 60,
 }
@@ -190,6 +190,15 @@ function Grid.effective_interval()
 		return Grid.interval / 10
 	end
 	return Grid.interval
+end
+
+function Grid.generate_board()
+	for y = 0, Grid.h, 1 do
+		Grid.board[y] = {}
+		for x = 0, Grid.w, 1 do
+			Grid.board[y][x] = nil
+		end
+	end
 end
 
 function Grid.generate_stones(level)
@@ -211,8 +220,6 @@ function Grid.generate_stones(level)
 		return {}
 	end
 
-	local stones = {}
-
 	local h_start = math.floor(preset.safe * Grid.h)
 	local bag = {}
 
@@ -222,47 +229,41 @@ function Grid.generate_stones(level)
 		end
 	end
 
-	-- generate red
 	local rand_num = math.random(#bag)
 	local rand_pos = bag[rand_num]
 	table.remove(bag, rand_num)
-	table.insert(stones, {
-		name = "R",
+	Grid.board[rand_pos.y][rand_pos.x] = {
+		type = "stone",
 		spr = 256,
-		x = rand_pos.x,
-		y = rand_pos.y,
-	})
+		color = "R",
+	}
 
-	-- generate yellow
 	rand_num = math.random(#bag)
 	rand_pos = bag[rand_num]
 	table.remove(bag, rand_num)
-	table.insert(stones, {
-		name = "S",
+	Grid.board[rand_pos.y][rand_pos.x] = {
+		type = "stone",
 		spr = 272,
-		x = rand_pos.x,
-		y = rand_pos.y,
-	})
+		color = "S",
+	}
 
-	-- generate blue
 	rand_num = math.random(#bag)
 	rand_pos = bag[rand_num]
 	table.remove(bag, rand_num)
-	table.insert(stones, {
-		name = "E",
+	Grid.board[rand_pos.y][rand_pos.x] = {
+		type = "stone",
 		spr = 288,
-		x = rand_pos.x,
-		y = rand_pos.y,
-	})
-
-	-- TODO: add more stones if level is higher than 1
-
-	Grid.stones = stones
+		color = "E",
+	}
 end
 
-function Grid.draw_stones()
-	for _, stone in ipairs(Grid.stones) do
-		spr(stone.spr, stone.x * Grid.cell_size, stone.y * Grid.cell_size)
+function Grid.draw_board()
+	for y = 0, Grid.h, 1 do
+		for x = 0, Grid.w, 1 do
+			if Grid.board[y][x] ~= nil then
+				spr(Grid.board[y][x].spr, x * Grid.cell_size, y * Grid.cell_size)
+			end
+		end
 	end
 end
 
@@ -348,26 +349,19 @@ function Grid.available(x, y)
 		return false
 	end
 
+	if y < 0 then
+		return true
+	end
+
 	if y >= Grid.h then
 		return false
 	end
 
-	for _, stone in ipairs(Grid.stones) do
-		if stone.x == x and stone.y == y then
-			return false
-		end
+	if Grid.board[y][x] == nil then
+		return true
 	end
 
-	for _, static in ipairs(Grid.static_bindings) do
-		local x1, y1, x2, y2 = Grid.get_binding_xy(static)
-		if x1 == x and y1 == y then
-			return false
-		end
-		if x2 == x and y2 == y then
-			return false
-		end
-	end
-	return true
+	return false
 end
 
 function Grid.get_binding_xy(binding, rotation)
@@ -463,8 +457,18 @@ function Grid.mark_active_binding_as_static()
 		return
 	end
 
-	local binding_copy = table.shallow_copy(Grid.active_binding)
-	table.insert(Grid.static_bindings, binding_copy)
+	local x1, y1, x2, y2 = Grid.get_binding_xy()
+	local spr1, spr2 = Grid.get_binding_spr()
+	Grid.board[y1][x1] = {
+		type = "binding",
+		color = Grid.active_binding.rune1.name,
+		spr = spr1,
+	}
+	Grid.board[y2][x2] = {
+		type = "binding",
+		color = Grid.active_binding.rune2.name,
+		spr = spr2,
+	}
 
 	Grid.pill_on_scene = false
 	Grid.active_binding = nil
@@ -536,6 +540,7 @@ x = 96
 y = 24
 inter = 60
 
+Grid.generate_board()
 Grid.generate_stones(1)
 
 function TIC()
@@ -578,7 +583,7 @@ function TIC()
 
 	cls(13)
 	Grid.draw_border()
-	Grid.draw_stones()
+	Grid.draw_board()
 	Grid.draw_static_bindings()
 	Grid.draw_active_binding()
 	Console.draw()
