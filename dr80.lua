@@ -135,7 +135,6 @@ local Runes = {}
 function Runes.gen_binding_rune()
 	local rune1 = RUNES[math.random(1, #RUNES)]
 	local rune2 = RUNES[math.random(1, #RUNES)]
-	Console.log(string.format("l: %s, r: %s", rune1.name, rune2.name))
 	return { rune1 = rune1, rune2 = rune2 }
 end
 
@@ -175,6 +174,8 @@ local Grid = {
 	static_bindings = {},
 	active_binding = nil,
 	board = {},
+	board_y_rle = {},
+	board_x_rle = {},
 	pill_on_scene = false,
 	interval = 60,
 }
@@ -198,6 +199,15 @@ function Grid.generate_board()
 		for x = 0, Grid.w, 1 do
 			Grid.board[y][x] = nil
 		end
+	end
+end
+
+function Grid.generate_board_rle()
+	for y = 0, Grid.h, 1 do
+		Grid.board_y_rle[y] = {}
+	end
+	for x = 0, Grid.w, 1 do
+		Grid.board_x_rle[x] = {}
 	end
 end
 
@@ -529,7 +539,120 @@ function Grid.eval()
 		Grid.spawn_binding(pill)
 		Grid.pill_on_scene = true
 	else
+		Grid.count_x_rle()
+		Grid.count_y_rle()
+		Grid.remove_marked()
+
 		Grid.grav()
+	end
+end
+
+function Grid.mark_to_remove_on_y(y, from, to)
+	for x = from, to, 1 do
+		Grid.board[y][x].to_remove = true
+	end
+end
+
+function Grid.mark_to_remove_on_x(x, from, to)
+	for y = from, to, 1 do
+		Grid.board[y][x].to_remove = true
+	end
+end
+
+function Grid.count_x_rle()
+	for y = 0, Grid.h, 1 do
+		local acc = nil
+		local from = nil
+		local to = nil
+		for x = 0, Grid.w, 1 do
+			if Grid.board[y][x] == nil then
+				if acc ~= nil and acc.count > 3 then
+					Console.log(string.format("acc > 3 for %d %d %d", y, from, x))
+					Grid.mark_to_remove_on_y(y, from, x)
+				end
+
+				acc = nil
+				goto continue
+			end
+			if acc == nil then
+				from = x
+				acc = {
+					color = Grid.board[y][x].color,
+					count = 1,
+				}
+			elseif acc.color == Grid.board[y][x].color then
+				acc.count = acc.count + 1
+			else
+				from = x
+				acc = {
+					color = Grid.board[y][x].color,
+					count = 1,
+				}
+			end
+
+			::continue::
+		end
+
+		if acc ~= nil and acc.count > 3 then
+			Console.log(string.format("acc > 3 for %d %d %d", y, from, x))
+			Grid.mark_to_remove_on_y(y, from, x)
+		end
+	end
+end
+
+function Grid.count_y_rle()
+	for x = 0, Grid.w, 1 do
+		local acc = nil
+		local from = nil
+		for y = 0, Grid.h, 1 do
+			if acc ~= nil and acc.count > 3 then
+				Grid.mark_to_remove_on_x(x, from, y)
+			end
+			if Grid.board[y][x] == nil then
+				acc = nil
+				goto continue
+			end
+			if acc == nil then
+				from = y
+				acc = {
+					color = Grid.board[y][x].color,
+					count = 1,
+				}
+			elseif acc.color == Grid.board[y][x].color then
+				acc.count = acc.count + 1
+			else
+				from = y
+				acc = {
+					color = Grid.board[y][x].color,
+					count = 1,
+				}
+			end
+
+			::continue::
+		end
+
+		if acc ~= nil and acc.count > 3 then
+			Console.log(string.format("acc > 3 for %d %d %d", x, from, y))
+			Grid.mark_to_remove_on_x(x, from, y)
+		end
+	end
+end
+
+function Grid.remove_marked()
+	for x = 0, Grid.w, 1 do
+		for y = 0, Grid.h, 1 do
+			if Grid.board[y][x] == nil then
+				goto continue
+			end
+			if Grid.board[y][x].to_remove == true then
+				Grid.board[y][x] = nil
+				Console.log(string.format("trying to remove %d %d", x, y))
+				local cx = x * Grid.cell_size
+				local cy = y * Grid.cell_size
+				spr(BORDER.CENTER, cx, cy)
+			end
+			::continue::
+		end
 	end
 end
 
