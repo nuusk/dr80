@@ -7,12 +7,21 @@
 -- script:  lua
 math.randomseed(tstamp())
 
-function table.shallow_copy(t)
-	local t2 = {}
-	for k, v in pairs(t) do
-		t2[k] = v
+function table.deep_copy(orig, copies)
+	copies = copies or {}
+	if copies[orig] then
+		return copies[orig]
 	end
-	return t2
+
+	local copy = {}
+	copies[orig] = copy
+	for k, v in pairs(orig) do
+		if type(v) == "table" then
+			v = table.deep_copy(v, copies)
+		end
+		copy[k] = v
+	end
+	return setmetatable(copy, getmetatable(orig))
 end
 
 Console = {
@@ -173,9 +182,9 @@ local Grid = {
 	w = 10,
 	static_bindings = {},
 	active_binding = nil,
+	halves = {},
+	drop_phase = false,
 	board = {},
-	board_y_rle = {},
-	board_x_rle = {},
 	interval = 60,
 }
 
@@ -183,6 +192,12 @@ local STONES = {
 	{ name = "R", spr = 256 },
 	{ name = "S", spr = 272 },
 	{ name = "E", spr = 288 },
+}
+
+local HALVES_SPR = {
+	R = 256,
+	S = 272,
+	E = 288,
 }
 
 function Grid.effective_interval()
@@ -198,15 +213,6 @@ function Grid.generate_board()
 		for x = 0, Grid.w, 1 do
 			Grid.board[y][x] = nil
 		end
-	end
-end
-
-function Grid.generate_board_rle()
-	for y = 0, Grid.h, 1 do
-		Grid.board_y_rle[y] = {}
-	end
-	for x = 0, Grid.w, 1 do
-		Grid.board_x_rle[x] = {}
 	end
 end
 
@@ -439,6 +445,35 @@ function Grid.draw_active_binding()
 	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
 end
 
+function Grid.draw_halves()
+	for _, half in ipairs(Grid.halves) do
+		spr(half.spr, half.x * Grid.cell_size, half.y * Grid.cell_size)
+	end
+end
+
+function Grid.grav_halves()
+	for i = #Grid.halves, 1, -1 do
+		local half = Grid.halves[i]
+
+		if half == nil then
+			Console.log("half is nil")
+			return
+		end
+
+		if Grid.available(half.x, half.y + 1) then
+			half.y = half.y + 1
+		else
+			Audio.play(SFX.DROP)
+			Grid.board[half.y][half.x] = {
+				type = "half",
+				color = half.color,
+				spr = half.spr,
+			}
+			table.remove(Grid.halves, i)
+		end
+	end
+end
+
 function Grid.grav()
 	local active = Grid.active_binding
 	if active == nil then
@@ -467,11 +502,19 @@ function Grid.mark_active_binding_as_static()
 		type = "binding",
 		color = Grid.active_binding.rune1.name,
 		spr = spr1,
+		other_half = {
+			x = x2,
+			y = y2,
+		},
 	}
 	Grid.board[y2][x2] = {
 		type = "binding",
 		color = Grid.active_binding.rune2.name,
 		spr = spr2,
+		other_half = {
+			x = x1,
+			y = y1,
+		},
 	}
 
 	Grid.active_binding = nil
@@ -528,6 +571,8 @@ local Game = {
 function Grid.eval()
 	if Grid.active_binding == nil then
 		Grid.spawn_binding(Runes.gen_binding_rune())
+	elseif #Grid.halves >= 1 then
+		Grid.grav_halves()
 	else
 		Grid.grav()
 		Grid.count_x_rle()
@@ -623,14 +668,24 @@ function Grid.count_y_rle()
 end
 
 function Grid.remove_marked()
+	local board_copy = table.deep_copy(Grid.board)
 	for x = 0, Grid.w, 1 do
 		for y = 0, Grid.h, 1 do
-			if Grid.board[y][x] == nil then
+			if board_copy[y][x] == nil then
 				goto continue
 			end
-			if Grid.board[y][x].to_remove == true then
+			if board_copy[y][x].to_remove == true then
+				local other_half = board_copy[y][x].other_half
+				if other_half ~= nil then
+					local color = board_copy[other_half.y][other_half.x].color
+					table.insert(Grid.halves, {
+						x = other_half.x,
+						y = other_half.y,
+						color = color,
+						spr = HALVES_SPR[color],
+					})
+				end
 				Grid.board[y][x] = nil
-				Console.log(string.format("trying to remove %d %d", x, y))
 				local cx = x * Grid.cell_size
 				local cy = y * Grid.cell_size
 				spr(BORDER.CENTER, cx, cy)
@@ -693,6 +748,7 @@ function TIC()
 	Grid.draw_board()
 	Grid.draw_static_bindings()
 	Grid.draw_active_binding()
+	Grid.draw_halves()
 	Console.draw()
 	t = t + 1
 end
