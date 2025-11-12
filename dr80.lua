@@ -176,7 +176,6 @@ local Grid = {
 	board = {},
 	board_y_rle = {},
 	board_x_rle = {},
-	pill_on_scene = false,
 	interval = 60,
 }
 
@@ -429,12 +428,7 @@ function Grid.draw_static_bindings()
 end
 
 function Grid.draw_active_binding()
-	if Grid.pill_on_scene == false then
-		return
-	end
-	local active = Grid.active_binding
-	if active == nil then
-		Console.log("cannot draw pill - no pill in game")
+	if Grid.active_binding == nil then
 		return
 	end
 
@@ -480,7 +474,6 @@ function Grid.mark_active_binding_as_static()
 		spr = spr2,
 	}
 
-	Grid.pill_on_scene = false
 	Grid.active_binding = nil
 end
 
@@ -530,27 +523,20 @@ local SCENES = {
 
 local Game = {
 	scene = SCENES.GAME,
-	pill_on_scene = false,
 }
 
 function Grid.eval()
-	if Grid.pill_on_scene == false then
-		local pill = Runes.gen_binding_rune()
-		Grid.spawn_binding(pill)
-		Grid.pill_on_scene = true
+	if Grid.active_binding == nil then
+		Grid.spawn_binding(Runes.gen_binding_rune())
 	else
+		Grid.grav()
 		Grid.count_x_rle()
 		Grid.count_y_rle()
 		Grid.remove_marked()
-
-		Grid.grav()
 	end
 end
 
 function Grid.mark_to_remove_on_y(y, from, to)
-	Console.log(y)
-	Console.log(from)
-	Console.log(to)
 	for x = from, to, 1 do
 		if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
 			Grid.board[y][x].to_remove = true
