@@ -548,34 +548,33 @@ function Grid.eval()
 end
 
 function Grid.mark_to_remove_on_y(y, from, to)
+	Console.log(y)
+	Console.log(from)
+	Console.log(to)
 	for x = from, to, 1 do
-		Grid.board[y][x].to_remove = true
+		if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
+			Grid.board[y][x].to_remove = true
+		end
 	end
 end
 
 function Grid.mark_to_remove_on_x(x, from, to)
 	for y = from, to, 1 do
-		Grid.board[y][x].to_remove = true
+		if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
+			Grid.board[y][x].to_remove = true
+		end
 	end
 end
 
 function Grid.count_x_rle()
-	for y = 0, Grid.h, 1 do
+	for y = 0, Grid.h - 1, 1 do
 		local acc = nil
-		local from = nil
-		local to = nil
-		for x = 0, Grid.w, 1 do
+		for x = 0, Grid.w - 1, 1 do
 			if Grid.board[y][x] == nil then
-				if acc ~= nil and acc.count > 3 then
-					Console.log(string.format("acc > 3 for %d %d %d", y, from, x))
-					Grid.mark_to_remove_on_y(y, from, x)
-				end
-
 				acc = nil
 				goto continue
 			end
 			if acc == nil then
-				from = x
 				acc = {
 					color = Grid.board[y][x].color,
 					count = 1,
@@ -583,37 +582,34 @@ function Grid.count_x_rle()
 			elseif acc.color == Grid.board[y][x].color then
 				acc.count = acc.count + 1
 			else
-				from = x
 				acc = {
 					color = Grid.board[y][x].color,
 					count = 1,
 				}
 			end
 
+			if acc ~= nil and acc.count > 3 then
+				Grid.mark_to_remove_on_y(y, x - acc.count + 1, x)
+			end
+
 			::continue::
 		end
 
 		if acc ~= nil and acc.count > 3 then
-			Console.log(string.format("acc > 3 for %d %d %d", y, from, x))
-			Grid.mark_to_remove_on_y(y, from, x)
+			Grid.mark_to_remove_on_y(y, x - acc.count + 1, x)
 		end
 	end
 end
 
 function Grid.count_y_rle()
-	for x = 0, Grid.w, 1 do
+	for x = 0, Grid.w - 1, 1 do
 		local acc = nil
-		local from = nil
-		for y = 0, Grid.h, 1 do
-			if acc ~= nil and acc.count > 3 then
-				Grid.mark_to_remove_on_x(x, from, y)
-			end
+		for y = 0, Grid.h - 1, 1 do
 			if Grid.board[y][x] == nil then
 				acc = nil
 				goto continue
 			end
 			if acc == nil then
-				from = y
 				acc = {
 					color = Grid.board[y][x].color,
 					count = 1,
@@ -621,19 +617,21 @@ function Grid.count_y_rle()
 			elseif acc.color == Grid.board[y][x].color then
 				acc.count = acc.count + 1
 			else
-				from = y
 				acc = {
 					color = Grid.board[y][x].color,
 					count = 1,
 				}
 			end
 
+			if acc ~= nil and acc.count > 3 then
+				Grid.mark_to_remove_on_x(x, y - acc.count + 1, y)
+			end
+
 			::continue::
 		end
 
 		if acc ~= nil and acc.count > 3 then
-			Console.log(string.format("acc > 3 for %d %d %d", x, from, y))
-			Grid.mark_to_remove_on_x(x, from, y)
+			Grid.mark_to_remove_on_x(x, y - acc.count + 1, y)
 		end
 	end
 end
