@@ -201,9 +201,9 @@ local STONES = {
 }
 
 local HALVES_SPR = {
-	R = 256,
-	S = 272,
-	E = 288,
+	R = 486,
+	S = 487,
+	E = 502,
 }
 
 function Grid.effective_interval()
@@ -459,33 +459,65 @@ end
 
 function Grid.grav_halves()
 	local still_falling = false
+	local already_moved = {}
+
+	for y = Grid.h - 1, 0, -1 do
+		if already_moved[y] == nil then
+			already_moved[y] = {}
+		end
+	end
+
 	for y = Grid.h - 1, 0, -1 do
 		for x = Grid.w - 1, 0, -1 do
+			if already_moved[y][x] == true then
+				goto continue
+			end
+
 			if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
 				Console.log(string.format("x: %d, y: %d, type: %s", x, y, Grid.board[y][x].type))
-				if Grid.board[y][x].type ~= "half" then
-					goto continue
-				end
 
-				local half = table.deep_copy(Grid.board[y][x])
-				if Grid.available(x, y + 1) then
-					Grid.board[y + 1][x] = {
-						type = "half",
-						color = half.color,
-						spr = half.spr,
-					}
-					Grid.board[y][x] = nil
-					still_falling = true
-				else
-					Audio.play(SFX.DROP)
-					Grid.board[y][x] = {
-						type = "half",
-						color = half.color,
-						spr = half.spr,
-					}
+				if Grid.board[y][x].type == "half" then
+					local half = table.deep_copy(Grid.board[y][x])
+					if Grid.available(x, y + 1) then
+						Grid.board[y + 1][x] = {
+							type = "half",
+							color = half.color,
+							spr = half.spr,
+						}
+						Grid.board[y][x] = nil
+						still_falling = true
+					else
+						Audio.play(SFX.DROP)
+						Grid.board[y][x] = {
+							type = "half",
+							color = half.color,
+							spr = half.spr,
+						}
+					end
+				elseif Grid.board[y][x].type == "binding" then
+					local binding = table.deep_copy(Grid.board[y][x])
+					local other_half = binding.other_half
+					local available_binding = Grid.available(x, y + 1)
+					local available_other = other_half == nil
+						or (other_half ~= nil and Grid.available(other_half.x, other_half.y + 1))
+
+					if available_binding and available_other then
+						Grid.board[y + 1][x] = table.deep_copy(Grid.board[y][x])
+						Grid.board[y][x] = nil
+						if other_half ~= nil then
+							Grid.board[other_half.y + 1][other_half.x] =
+								table.deep_copy(Grid.board[other_half.y][other_half.x])
+							Grid.board[other_half.y][other_half.x] = nil
+							already_moved[other_half.y][other_half.x] = true
+						end
+						still_falling = true
+					else
+						Audio.play(SFX.DROP)
+					end
 				end
-				::continue::
 			end
+
+			::continue::
 		end
 	end
 
@@ -965,4 +997,3 @@ end
 -- <PALETTE>
 -- 000:7d819d5d275d993e53ef7d57fafafaffffe6ffd691a5757929366f3b5dc924c2ff89eff71a1c2c94b0c2566c86333c57
 -- </PALETTE>
-
