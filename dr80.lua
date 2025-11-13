@@ -52,6 +52,10 @@ function Console.log(msg)
 	end
 end
 
+function Console.clear()
+	Console.lines = {}
+end
+
 function Console.update()
 	if btnp(7) then
 		Console.toggle()
@@ -158,6 +162,7 @@ local KEYMAP_P1 = {
 	DOWN = 1,
 	A = 5,
 	B = 4,
+	PAUSE = 6,
 }
 
 -- Keymap end --
@@ -186,6 +191,7 @@ local Grid = {
 	drop_phase = false,
 	board = {},
 	interval = 60,
+	is_paused = false,
 }
 
 local STONES = {
@@ -532,6 +538,21 @@ function Grid.mark_active_binding_as_static()
 	Grid.active_binding = nil
 end
 
+function Grid.print()
+	for y = 0, Grid.h - 1 do
+		for x = 0, Grid.w - 1 do
+			local color = "nil"
+			local type = "nil"
+			if Grid.board[y][x] ~= nil then
+				color = Grid.board[y][x].color
+				type = Grid.board[y][x].type
+
+				Console.log(string.format("[%d][%d]:(%s)%s", y, x, color, type))
+			end
+		end
+	end
+end
+
 function Grid.draw_border()
 	for y = 0, Grid.h - 1 do
 		local cy = y * Grid.cell_size
@@ -755,8 +776,18 @@ function TIC()
 		Grid.move_right()
 	end
 
+	if btnp(KEYMAP_P1.PAUSE) then
+		Grid.is_paused = not Grid.is_paused
+		if Grid.is_paused == true then
+			Console.clear()
+			Grid.print()
+		end
+	end
+
 	if t % Grid.effective_interval() == 0 then
-		Grid.eval()
+		if Grid.is_paused ~= true then
+			Grid.eval()
+		end
 	end
 
 	cls(13)
