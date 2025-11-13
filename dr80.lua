@@ -452,26 +452,38 @@ function Grid.draw_halves()
 end
 
 function Grid.grav_halves()
-	for i = #Grid.halves, 1, -1 do
-		local half = Grid.halves[i]
+	local still_falling = false
+	for y = Grid.h - 1, 0, -1 do
+		for x = Grid.w - 1, 0, -1 do
+			if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
+				Console.log(string.format("x: %d, y: %d, type: %s", x, y, Grid.board[y][x].type))
+				if Grid.board[y][x].type ~= "half" then
+					goto continue
+				end
 
-		if half == nil then
-			Console.log("half is nil")
-			return
-		end
-
-		if Grid.available(half.x, half.y + 1) then
-			half.y = half.y + 1
-		else
-			Audio.play(SFX.DROP)
-			Grid.board[half.y][half.x] = {
-				type = "half",
-				color = half.color,
-				spr = half.spr,
-			}
-			table.remove(Grid.halves, i)
+				local half = table.deep_copy(Grid.board[y][x])
+				if Grid.available(x, y + 1) then
+					Grid.board[y + 1][x] = {
+						type = "half",
+						color = half.color,
+						spr = half.spr,
+					}
+					Grid.board[y][x] = nil
+					still_falling = true
+				else
+					Audio.play(SFX.DROP)
+					Grid.board[y][x] = {
+						type = "half",
+						color = half.color,
+						spr = half.spr,
+					}
+				end
+				::continue::
+			end
 		end
 	end
+
+	return still_falling
 end
 
 function Grid.grav()
@@ -569,10 +581,14 @@ local Game = {
 }
 
 function Grid.eval()
+	if Grid.drop_trigger == true then
+		local next_drop_trigger = Grid.grav_halves()
+		Grid.drop_trigger = next_drop_trigger
+		return
+	end
+
 	if Grid.active_binding == nil then
 		Grid.spawn_binding(Runes.gen_binding_rune())
-	elseif #Grid.halves >= 1 then
-		Grid.grav_halves()
 	else
 		Grid.grav()
 		Grid.count_x_rle()
@@ -677,13 +693,13 @@ function Grid.remove_marked()
 			if board_copy[y][x].to_remove == true then
 				local other_half = board_copy[y][x].other_half
 				if other_half ~= nil then
-					local color = board_copy[other_half.y][other_half.x].color
-					table.insert(Grid.halves, {
-						x = other_half.x,
-						y = other_half.y,
-						color = color,
-						spr = HALVES_SPR[color],
-					})
+					-- check if half should be generated
+					if board_copy[other_half.y][other_half.x].to_remove ~= true then
+						local color = board_copy[other_half.y][other_half.x].color
+						Grid.board[other_half.y][other_half.x].type = "half"
+						Grid.board[other_half.y][other_half.x].spr = HALVES_SPR[color]
+						Grid.drop_trigger = true
+					end
 				end
 				Grid.board[y][x] = nil
 				local cx = x * Grid.cell_size
