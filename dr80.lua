@@ -866,6 +866,8 @@ end
 -- 137:ccccccc0aaaaaaccbaaabaacaaaaabacaaaaaaacaaaaaaacaaaaaaccccccccc0
 -- 138:c222232cc222222cc222222cc222222cc212222cc221222ccc2222cc0cccccc0
 -- 139:caaaabaccaaaaaaccaaaaaaccaaaaaacca9aaaaccaa9aaacccaaaacc0cccccc0
+-- 230:0cccccc0cc2222ccc222322cc222232cc212222cc221222ccc2222cc0cccccc0
+-- 231:0cccccc0cc6666ccc666566cc666656cc676666cc667666ccc6666cc0cccccc0
 -- 232:0cccccccccaaaaaacaaaabbbcaaaaaaaca9aaaaacaa9aaaaccaaaaaa0ccccccc
 -- 233:ccccccc0aaaaaaccbaaabaacaaaaabacaaaaaaacaaaaaaacaaaaaaccccccccc0
 -- 234:0ccccccccc222222c2222333c2222222c2122222c2212222cc2222220ccccccc
@@ -874,6 +876,8 @@ end
 -- 237:0cccccc0cc6666ccc666566cc666656cc666666cc666656cc666656cc666656c
 -- 238:0cccccc0ccaaaacccaaabaaccaaaabaccaaaaaaccaaaabaccaaaabaccaaaabac
 -- 239:0cccccc0cceeeeccceeedeecceeeedecceeeeeecceeeedecceeeedecceeeedec
+-- 246:0cccccc0ccaaaacccaaabaaccaaaabacca9aaaaccaa9aaacccaaaacc0cccccc0
+-- 247:0cccccc0cceeeeccceeedeecceeeedeccefeeeecceefeeeccceeeecc0cccccc0
 -- 248:0ccccccccceeeeeeceeeedddceeeeeeecefeeeeeceefeeeecceeeeee0ccccccc
 -- 249:ccccccc0eeeeeeccdeeedeeceeeeedeceeeeeeeceeeeeeeceeeeeeccccccccc0
 -- 250:0ccccccccc666666c6666555c6666666c6766666c6676666cc6666660ccccccc
@@ -959,5 +963,6 @@ end
 -- </TRACKS>
 
 -- <PALETTE>
--- 000:7d819d5d275dc23e53ef7d57fafafaffffe6ffd691a5757929366f3b5dc92091ff73eff71a1c2c94b0c2566c86333c57
+-- 000:7d819d5d275d993e53ef7d57fafafaffffe6ffd691a5757929366f3b5dc924c2ff89eff71a1c2c94b0c2566c86333c57
 -- </PALETTE>
+
