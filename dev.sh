@@ -1,11 +1,10 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 SESSION=dr80
 CONFIG="$HOME/code/dr80/.tmux"
 
-tmux has-session -t "$SESSION" 2>/dev/null
-if [ $? -ne 0 ]; then
-  tmux source-file "$CONFIG"
-fi
+# Create session if missing
+tmux has-session -t "$SESSION" 2>/dev/null || tmux source-file "$CONFIG"
 
-kitty tmux attach -t "$SESSION"
+# Launch kitty normally and attach from a shell
+kitty sh -c "tmux attach -t '$SESSION'"

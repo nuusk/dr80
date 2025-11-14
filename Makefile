@@ -8,5 +8,8 @@ run:
 save:
 	padsp tic80 --fs $(FS) --skip --cmd "load $(GAME) & save dr80.lua & exit"
 
+tmux:
+	tmux -f .tmux attach
+
 kill:
 	killall tic80
