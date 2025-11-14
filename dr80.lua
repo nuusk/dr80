@@ -466,8 +466,6 @@ function Grid.grav_halves()
 	local still_falling = false
 	local already_moved = {}
 
-	local to_remove_diff = {}
-
 	for y = Grid.h - 1, 0, -1 do
 		if already_moved[y] == nil then
 			already_moved[y] = {}
@@ -484,7 +482,7 @@ function Grid.grav_halves()
 				Console.log(string.format("x: %d, y: %d, type: %s", x, y, Grid.board[y][x].type))
 
 				if Grid.board[y][x].type == "half" then
-					local half = table.deep_copy(Grid.board[y][x])
+					local half = Grid.board[y][x]
 					if Grid.available(x, y + 1) then
 						Grid.board[y + 1][x] = {
 							type = "half",
@@ -502,7 +500,7 @@ function Grid.grav_halves()
 						}
 					end
 				elseif Grid.board[y][x].type == "binding" then
-					local binding = table.deep_copy(Grid.board[y][x])
+					local binding = Grid.board[y][x]
 					local oh_pos = binding.other_half
 					local is_available_binding = Grid.available(x, y + 1)
 					local is_available_oh = Grid.available(oh_pos.x, oh_pos.y + 1)
@@ -767,6 +765,7 @@ function Grid.remove_marked()
 				end
 
 				table.insert(to_remove_diff, { x = x, y = y })
+
 				Grid.drop_trigger = true
 			end
 
