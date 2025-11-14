@@ -287,7 +287,7 @@ function Grid.draw_board()
 	for y = 0, Grid.h - 1, 1 do
 		for x = 0, Grid.w - 1, 1 do
 			if Grid.board[y][x] ~= nil then
-				spr(Grid.board[y][x].spr, x * Grid.cell_size, y * Grid.cell_size)
+				spr(Grid.board[y][x].spr, x * Grid.cell_size, y * Grid.cell_size, 0)
 			end
 		end
 	end
@@ -439,8 +439,8 @@ function Grid.draw_static_bindings()
 
 		Console.log(x1)
 
-		spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
-		spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
+		spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size, 0)
+		spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size, 0)
 	end
 end
 
@@ -452,13 +452,13 @@ function Grid.draw_active_binding()
 	local x1, y1, x2, y2 = Grid.get_binding_xy()
 	local spr1, spr2 = Grid.get_binding_spr()
 
-	spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size)
-	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size)
+	spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size, 0)
+	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size, 0)
 end
 
 function Grid.draw_halves()
 	for _, half in ipairs(Grid.halves) do
-		spr(half.spr, half.x * Grid.cell_size, half.y * Grid.cell_size)
+		spr(half.spr, half.x * Grid.cell_size, half.y * Grid.cell_size, 0)
 	end
 end
 
@@ -611,27 +611,27 @@ function Grid.draw_border()
 
 			if y == 0 then
 				if x == 0 then
-					spr(BORDER.TOPLEFT, cx, cy)
+					spr(BORDER.TOPLEFT, cx, cy, 0)
 				elseif x == Grid.w - 1 then
-					spr(BORDER.TOPRIGHT, cx, cy)
+					spr(BORDER.TOPRIGHT, cx, cy, 0)
 				else
-					spr(BORDER.TOP, cx, cy)
+					spr(BORDER.TOP, cx, cy, 0)
 				end
 			elseif y == Grid.h - 1 then
 				if x == 0 then
-					spr(BORDER.BOTTOMLEFT, cx, cy)
+					spr(BORDER.BOTTOMLEFT, cx, cy, 0)
 				elseif x == Grid.w - 1 then
-					spr(BORDER.BOTTOMRIGHT, cx, cy)
+					spr(BORDER.BOTTOMRIGHT, cx, cy, 0)
 				else
-					spr(BORDER.BOTTOM, cx, cy)
+					spr(BORDER.BOTTOM, cx, cy, 0)
 				end
 			else
 				if x == 0 then
-					spr(BORDER.LEFT, cx, cy)
+					spr(BORDER.LEFT, cx, cy, 0)
 				elseif x == Grid.w - 1 then
-					spr(BORDER.RIGHT, cx, cy)
+					spr(BORDER.RIGHT, cx, cy, 0)
 				else
-					spr(BORDER.CENTER, cx, cy)
+					spr(BORDER.CENTER, cx, cy, 0)
 				end
 			end
 		end
@@ -785,7 +785,7 @@ function Grid.remove_marked()
 		Grid.board[pos.y][pos.x] = nil
 		local cx = pos.x * Grid.cell_size
 		local cy = pos.y * Grid.cell_size
-		spr(BORDER.CENTER, cx, cy)
+		spr(BORDER.CENTER, cx, cy, 0)
 	end
 end
 
@@ -858,7 +858,7 @@ function TIC()
 end
 
 -- <TILES>
--- 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
+-- 001:ccccccce888888ccaaaaaaac888888acccccccacccc0ccacccc0ccacccc0ccac
 -- 002:ccccceee8888cceeaaaa0cee888a0ceeccca0ccc0cca0c0c0cca0c0c0cca0c0c
 -- 003:eccccccccc888888caaaaaaaca888888cacccccccacccccccacc0ccccacc0ccc
 -- 004:ccccceee8888cceeaaaa0cee888a0ceeccca0cccccca0c0c0cca0c0c0cca0c0c
@@ -866,15 +866,15 @@ end
 -- 018:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
 -- 019:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
 -- 020:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
--- 032:0000000000bbbbbb0bbbbbbb0bbb00000bb0f00f0bb000000bb000000bb0f00f
--- 033:00000000bbbbbbbbbbbbbbbb0000000000f00f00000000000000000000f00f00
--- 034:00000000bbbbbb00bbbbbbb00000bbb0f00f0bb000000bb000000bb0f00f0bb0
--- 048:0bb000000bb000000bb0f00f0bb000000bb000000bb0f00f0bb000000bb00000
--- 049:000000000000000000f00f00000000000000000000f00f000000000000000000
--- 050:00000bb000000bb0f00f0bb000000bb000000bb0f00f0bb000000bb000000bb0
--- 064:0bb0f00f0bb000000bb000000bb0f00f0bbb00000bbbbbbb00bbbbbb00000000
--- 065:00f00f00000000000000000000f00f0000000000bbbbbbbbbbbbbbbb00000000
--- 066:f00f0bb000000bb000000bb0f00f0bb00000bbb0bbbbbbb0bbbbbb0000000000
+-- 032:0000000000bbbbbb0bbbbbbb0bbbcccc0bbcfccf0bbccccc0bbccccc0bbcfccf
+-- 033:00000000bbbbbbbbbbbbbbbbccccccccccfccfccccccccccccccccccccfccfcc
+-- 034:00000000bbbbbb00bbbbbbb0ccccbbb0fccfcbb0cccccbb0cccccbb0fccfcbb0
+-- 048:0bbccccc0bbccccc0bbcfccf0bbccccc0bbccccc0bbcfccf0bbccccc0bbccccc
+-- 049:ccccccccccccccccccfccfccccccccccccccccccccfccfcccccccccccccccccc
+-- 050:cccccbb0cccccbb0fccfcbb0cccccbb0cccccbb0fccfcbb0cccccbb0cccccbb0
+-- 064:0bbcfccf0bbccccc0bbccccc0bbcfccf0bbbcccc0bbbbbbb00bbbbbb00000000
+-- 065:ccfccfccccccccccccccccccccfccfccccccccccbbbbbbbbbbbbbbbb00000000
+-- 066:fccfcbb0cccccbb0cccccbb0fccfcbb0ccccbbb0bbbbbbb0bbbbbb0000000000
 -- </TILES>
 
 -- <SPRITES>
@@ -1022,3 +1022,4 @@ end
 -- <PALETTE>
 -- 000:7d819d5d275d993e53ef7d57fafafaffffe6ffd691a5757929366f3b5dc924c2ff89eff71a1c2c94b0c2566c86333c57
 -- </PALETTE>
+
