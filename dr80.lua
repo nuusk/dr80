@@ -8,6 +8,10 @@
 math.randomseed(tstamp())
 
 function table.deep_copy(orig, copies)
+	if type(orig) ~= "table" then
+		return orig
+	end
+
 	copies = copies or {}
 	if copies[orig] then
 		return copies[orig]
@@ -15,19 +19,20 @@ function table.deep_copy(orig, copies)
 
 	local copy = {}
 	copies[orig] = copy
+
 	for k, v in pairs(orig) do
-		if type(v) == "table" then
-			v = table.deep_copy(v, copies)
-		end
-		copy[k] = v
+		local new_k = (type(k) == "table") and table.deep_copy(k, copies) or k
+		local new_v = (type(v) == "table") and table.deep_copy(v, copies) or v
+		copy[new_k] = new_v
 	end
-	return setmetatable(copy, getmetatable(orig))
+
+	return copy
 end
 
 Console = {
 	open = true,
 	lines = {},
-	max = 120,
+	max = 220,
 	scroll = 0,
 	actions = {},
 	action_keys = { 4, 5, 6, 7 },
@@ -79,7 +84,7 @@ function Console.draw()
 	local x, y = 100, 0
 	rect(x, y, w, h, 0)
 	rectb(x, y, w, h, 13)
-	local visible = 9
+	local visible = 20
 	local start = math.max(1, #Console.lines - visible - Console.scroll + 1)
 	local idx = 0
 	for i = start, math.min(#Console.lines, start + visible - 1) do
@@ -214,9 +219,9 @@ function Grid.effective_interval()
 end
 
 function Grid.generate_board()
-	for y = 0, Grid.h, 1 do
+	for y = 0, Grid.h - 1, 1 do
 		Grid.board[y] = {}
-		for x = 0, Grid.w, 1 do
+		for x = 0, Grid.w - 1, 1 do
 			Grid.board[y][x] = nil
 		end
 	end
@@ -279,8 +284,8 @@ function Grid.generate_stones(level)
 end
 
 function Grid.draw_board()
-	for y = 0, Grid.h, 1 do
-		for x = 0, Grid.w, 1 do
+	for y = 0, Grid.h - 1, 1 do
+		for x = 0, Grid.w - 1, 1 do
 			if Grid.board[y][x] ~= nil then
 				spr(Grid.board[y][x].spr, x * Grid.cell_size, y * Grid.cell_size)
 			end
@@ -461,6 +466,8 @@ function Grid.grav_halves()
 	local still_falling = false
 	local already_moved = {}
 
+	local to_remove_diff = {}
+
 	for y = Grid.h - 1, 0, -1 do
 		if already_moved[y] == nil then
 			already_moved[y] = {}
@@ -496,20 +503,27 @@ function Grid.grav_halves()
 					end
 				elseif Grid.board[y][x].type == "binding" then
 					local binding = table.deep_copy(Grid.board[y][x])
-					local other_half = binding.other_half
-					local available_binding = Grid.available(x, y + 1)
-					local available_other = other_half == nil
-						or (other_half ~= nil and Grid.available(other_half.x, other_half.y + 1))
+					local oh_pos = binding.other_half
+					local is_available_binding = Grid.available(x, y + 1)
+					local is_available_oh = Grid.available(oh_pos.x, oh_pos.y + 1)
 
-					if available_binding and available_other then
-						Grid.board[y + 1][x] = table.deep_copy(Grid.board[y][x])
-						Grid.board[y][x] = nil
-						if other_half ~= nil then
-							Grid.board[other_half.y + 1][other_half.x] =
-								table.deep_copy(Grid.board[other_half.y][other_half.x])
-							Grid.board[other_half.y][other_half.x] = nil
-							already_moved[other_half.y][other_half.x] = true
+					if oh_pos.x == x then
+						if is_available_binding then
+							Grid.board[y + 1][x] = table.deep_copy(Grid.board[y][x])
+							Grid.board[y + 1][x].other_half.y = oh_pos.y + 1
+							Grid.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(Grid.board[oh_pos.y][oh_pos.x])
+							Grid.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
+							Grid.board[oh_pos.y][oh_pos.x] = nil
+							already_moved[oh_pos.y][oh_pos.x] = true
 						end
+					elseif is_available_binding and is_available_oh then
+						Grid.board[y + 1][x] = table.deep_copy(Grid.board[y][x])
+						Grid.board[y + 1][x].other_half.y = oh_pos.y + 1
+						Grid.board[y][x] = nil
+						Grid.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(Grid.board[oh_pos.y][oh_pos.x])
+						Grid.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
+						Grid.board[oh_pos.y][oh_pos.x] = nil
+						already_moved[oh_pos.y][oh_pos.x] = true
 						still_falling = true
 					else
 						Audio.play(SFX.DROP)
@@ -579,7 +593,13 @@ function Grid.print()
 				color = Grid.board[y][x].color
 				type = Grid.board[y][x].type
 
-				Console.log(string.format("[%d][%d]:(%s)%s", y, x, color, type))
+				format = string.format("[%d][%d]:(%s)%s", y, x, color, type)
+				oh = Grid.board[y][x].other_half
+				if oh then
+					format = string.format("[%d][%d]:(%s)%s {oh y:%d,x:%d}", y, x, color, type, oh.y, oh.x)
+				end
+
+				Console.log(format)
 			end
 		end
 	end
@@ -694,10 +714,6 @@ function Grid.count_x_rle()
 
 			::continue::
 		end
-
-		if acc ~= nil and acc.count > 3 then
-			Grid.mark_to_remove_on_y(y, x - acc.count + 1, x)
-		end
 	end
 end
 
@@ -729,38 +745,48 @@ function Grid.count_y_rle()
 
 			::continue::
 		end
-
-		if acc ~= nil and acc.count > 3 then
-			Grid.mark_to_remove_on_x(x, y - acc.count + 1, y)
-		end
 	end
 end
 
 function Grid.remove_marked()
 	local board_copy = table.deep_copy(Grid.board)
-	for x = 0, Grid.w, 1 do
-		for y = 0, Grid.h, 1 do
-			if board_copy[y][x] == nil then
+
+	local to_remove_diff = {}
+	local to_convert_diff = {}
+
+	for y = Grid.h - 1, 0, -1 do
+		for x = Grid.w - 1, 0, -1 do
+			if not board_copy[y] or not board_copy[y][x] then
 				goto continue
 			end
-			if board_copy[y][x].to_remove == true then
-				local other_half = board_copy[y][x].other_half
-				if other_half ~= nil then
-					-- check if half should be generated
-					if board_copy[other_half.y][other_half.x].to_remove ~= true then
-						local color = board_copy[other_half.y][other_half.x].color
-						Grid.board[other_half.y][other_half.x].type = "half"
-						Grid.board[other_half.y][other_half.x].spr = HALVES_SPR[color]
-						Grid.drop_trigger = true
-					end
+
+			if board_copy[y][x].to_remove then
+				local oh = board_copy[y][x].other_half
+				if oh and board_copy[oh.y] and board_copy[oh.y][oh.x] and not board_copy[oh.y][oh.x].to_remove then
+					table.insert(to_convert_diff, oh)
 				end
-				Grid.board[y][x] = nil
-				local cx = x * Grid.cell_size
-				local cy = y * Grid.cell_size
-				spr(BORDER.CENTER, cx, cy)
+
+				table.insert(to_remove_diff, { x = x, y = y })
+				Grid.drop_trigger = true
 			end
+
 			::continue::
 		end
+	end
+
+	for _, pos in ipairs(to_convert_diff) do
+		local cell = Grid.board[pos.y][pos.x]
+		if cell then
+			cell.type = "half"
+			cell.spr = HALVES_SPR[cell.color]
+		end
+	end
+
+	for _, pos in ipairs(to_remove_diff) do
+		Grid.board[pos.y][pos.x] = nil
+		local cx = pos.x * Grid.cell_size
+		local cy = pos.y * Grid.cell_size
+		spr(BORDER.CENTER, cx, cy)
 	end
 end
 
