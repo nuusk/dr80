@@ -261,9 +261,7 @@ function Grid.draw_character(t)
 	cy = (Grid.h - 2) * Grid.cell_size
 
 	local i = (t // 8) % #char.anim_idle.sprites + 1
-	Console.log(i)
 	local frame = char.anim_idle.sprites[i]
-	Console.log(frame)
 	if char.state == "idle" then
 		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
 	end
