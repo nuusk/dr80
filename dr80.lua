@@ -197,6 +197,7 @@ local Grid = {
 	board = {},
 	interval = 60,
 	is_paused = false,
+	character = nil,
 }
 
 local STONES = {
@@ -209,6 +210,14 @@ local HALVES_SPR = {
 	R = 486,
 	S = 487,
 	E = 502,
+}
+
+local CHAR_1_ANIMATION_IDLE = {
+	400,
+	402,
+	404,
+	406,
+	408,
 }
 
 function Grid.effective_interval()
@@ -224,6 +233,39 @@ function Grid.generate_board()
 		for x = 0, Grid.w - 1, 1 do
 			Grid.board[y][x] = nil
 		end
+	end
+end
+
+function Grid.generate_character(index)
+	if index == 1 then
+		Grid.character = {
+			state = "idle",
+			anim_idle = {
+				sprites = CHAR_1_ANIMATION_IDLE,
+				cur = 0,
+			},
+			w = 2,
+			h = 3,
+		}
+	end
+end
+
+function Grid.draw_character(t)
+	local char = Grid.character
+	if char == nil then
+		Console.log("ERROR: character is nil, fix the code")
+		return
+	end
+
+	cx = Grid.w * Grid.cell_size
+	cy = (Grid.h - 2) * Grid.cell_size
+
+	local i = (t // 8) % #char.anim_idle.sprites + 1
+	Console.log(i)
+	local frame = char.anim_idle.sprites[i]
+	Console.log(frame)
+	if char.state == "idle" then
+		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
 	end
 end
 
@@ -798,6 +840,7 @@ inter = 60
 
 Grid.generate_board()
 Grid.generate_stones(1)
+Grid.generate_character(1)
 
 function TIC()
 	Audio.playBGM(TRACK.FLORA)
@@ -853,6 +896,7 @@ function TIC()
 	Grid.draw_static_bindings()
 	Grid.draw_active_binding()
 	Grid.draw_halves()
+	Grid.draw_character(t)
 	Console.draw()
 	t = t + 1
 end
@@ -1096,4 +1140,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
