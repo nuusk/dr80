@@ -29,6 +29,11 @@ function table.deep_copy(orig, copies)
 	return copy
 end
 
+local Screen = {
+	height = 136,
+	width = 240,
+}
+
 Console = {
 	open = true,
 	lines = {},
@@ -194,8 +199,8 @@ local Grid = {
 	cell_size = 8,
 	px = 1,
 	py = 1,
-	h = 16,
-	w = 10,
+	h = 15, -- perfect for tic80 screen size
+	w = 6,
 	static_bindings = {},
 	active_binding = nil,
 	halves = {},
@@ -333,7 +338,9 @@ function Grid.draw_board()
 	for y = 0, Grid.h - 1, 1 do
 		for x = 0, Grid.w - 1, 1 do
 			if Grid.board[y][x] ~= nil then
-				spr(Grid.board[y][x].spr, x * Grid.cell_size, y * Grid.cell_size, 0)
+				local cx = Grid.cx(x)
+				local cy = Grid.cy(y)
+				spr(Grid.board[y][x].spr, cx, cy, 0)
 			end
 		end
 	end
@@ -498,8 +505,8 @@ function Grid.draw_active_binding()
 	local x1, y1, x2, y2 = Grid.get_binding_xy()
 	local spr1, spr2 = Grid.get_binding_spr()
 
-	spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size, 0)
-	spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size, 0)
+	spr(spr1, Grid.cx(x1), Grid.cy(y1), 0)
+	spr(spr2, Grid.cx(x2), Grid.cy(y2), 0)
 end
 
 function Grid.draw_halves()
@@ -665,8 +672,13 @@ function Grid.draw_background()
 			if y == 0 or y == Grid.h + 1 then
 				ok = true
 			end
-			local cx = Grid.cx(x - 1)
-			spr(BACKGROUND.SINGLE, cx, cy, 0)
+			if x == 0 or x == Grid.w + 1 then
+				ok = true
+			end
+			if ok == true then
+				local cx = Grid.cx(x - 1)
+				spr(BACKGROUND.SINGLE, cx, cy, 0)
+			end
 		end
 	end
 end
@@ -852,7 +864,7 @@ function Grid.remove_marked()
 	for _, pos in ipairs(to_remove_diff) do
 		Grid.board[pos.y][pos.x] = nil
 		local cx = Grid.cx(pos.x)
-		local cy = Grid.cy(pox.y)
+		local cy = Grid.cy(pos.y)
 		spr(BORDER.CENTER, cx, cy, 0)
 	end
 end
@@ -860,9 +872,6 @@ end
 -- Game manager end --
 
 t = 0
-x = 96
-y = 24
-inter = 60
 
 Grid.generate_board()
 Grid.generate_stones(1)
@@ -872,20 +881,6 @@ function TIC()
 	Audio.playBGM(TRACK.FLORA)
 
 	Console.update()
-
-	if btn(0) then
-		y = y - 1
-	end
-	if btn(1) then
-		y = y + 1
-	end
-	if btn(2) then
-		x = x - 1
-	end
-	if btn(3) then
-		x = x + 1
-	end
-
 	if btnp(KEYMAP_P1.A) then
 		Grid.rotate_clockwise()
 	end
@@ -916,7 +911,7 @@ function TIC()
 		end
 	end
 
-	cls(13)
+	cls(0)
 	Grid.draw_background()
 	Grid.draw_border()
 	Grid.draw_board()
