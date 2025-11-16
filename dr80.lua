@@ -200,7 +200,7 @@ local Grid = {
 	px = 1,
 	py = 1,
 	h = 15, -- perfect for tic80 screen size
-	w = 6,
+	w = 8,
 	static_bindings = {},
 	active_binding = nil,
 	halves = {},
@@ -932,15 +932,6 @@ end
 -- 018:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
 -- 019:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
 -- 020:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
--- 032:0000000000bbbbbb0bbbbbbb0bbbffff0bbfffff0bbfffff0bbfffff0bbfffff
--- 033:00000000bbbbbbbbbbbbbbbbffffffffffffffffffffffffffffffffffffffff
--- 034:00000000bbbbbb00bbbbbbb0ffffbbb0fffffbb0fffffbb0fffffbb0fffffbb0
--- 048:0bbfffff0bbfffff0bbfffff0bbfffff0bbfffff0bbfffff0bbfffff0bbfffff
--- 049:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
--- 050:fffffbb0fffffbb0fffffbb0fffffbb0fffffbb0fffffbb0fffffbb0fffffbb0
--- 064:0bbfffff0bbfffff0bbfffff0bbfffff0bbbffff0bbbbbbb00bbbbbb00000000
--- 065:ffffffffffffffffffffffffffffffffffffffffbbbbbbbbbbbbbbbb00000000
--- 066:fffffbb0fffffbb0fffffbb0fffffbb0ffffbbb0bbbbbbb0bbbbbb0000000000
 -- </TILES>
 
 -- <SPRITES>
@@ -1047,10 +1038,18 @@ end
 -- 193:ccccccc0ffffffccffffdffcfffffdfcfffffffcfffffffcfffffffcfffffffc
 -- 194:0cccccccccffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 195:ccccccc0ffffffccffffdffcfffffdfcfffffffcfffffffcfffffffcfffffffc
+-- 196:0cccccccccffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
+-- 197:ccccccc0ffffffccffffeffcfffffefcfffffffcfffffffcfffffffcfffffffc
+-- 198:0cccccccccffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
+-- 199:ccccccc0ffffffccffffeffcfffffefcfffffffcfffffffcfffffffcfffffffc
 -- 208:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 209:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffc
 -- 210:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 211:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffc
+-- 212:cfffffffcfffffffcfffffffcfffffffcfcfffffcffcffffccffffff0ccccccc
+-- 213:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcffffffccccccccc0
+-- 214:cfffffffcfffffffcfffffffcfffffffcfcfffffcffcffffccffffff0ccccccc
+-- 215:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcffffffccccccccc0
 -- 224:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 225:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffc
 -- 226:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
@@ -1162,3 +1161,4 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
