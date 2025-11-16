@@ -186,6 +186,10 @@ local BORDER = {
 	BOTTOMRIGHT = 66,
 }
 
+local BACKGROUND = {
+	SINGLE = 503,
+}
+
 local Grid = {
 	cell_size = 8,
 	px = 1,
@@ -653,6 +657,20 @@ function Grid.cy(y)
 	return (y + Grid.py) * Grid.cell_size
 end
 
+function Grid.draw_background()
+	for y = 0, Grid.h + 1 do
+		local cy = Grid.cy(y - 1)
+		for x = 0, Grid.w + 1 do
+			ok = false
+			if y == 0 or y == Grid.h + 1 then
+				ok = true
+			end
+			local cx = Grid.cx(x - 1)
+			spr(BACKGROUND.SINGLE, cx, cy, 0)
+		end
+	end
+end
+
 function Grid.draw_border()
 	for y = 0, Grid.h - 1 do
 		local cy = Grid.cy(y)
@@ -899,6 +917,7 @@ function TIC()
 	end
 
 	cls(13)
+	Grid.draw_background()
 	Grid.draw_border()
 	Grid.draw_board()
 	Grid.draw_static_bindings()
