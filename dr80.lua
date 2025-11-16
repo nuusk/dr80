@@ -193,6 +193,7 @@ local BORDER = {
 
 local BACKGROUND = {
 	SINGLE = 503,
+	SQUARE_2x2 = 452,
 }
 
 local Grid = {
@@ -201,6 +202,7 @@ local Grid = {
 	py = 1,
 	h = 15, -- perfect for tic80 screen size
 	w = 8,
+	next_binding = nil,
 	static_bindings = {},
 	active_binding = nil,
 	halves = {},
@@ -261,6 +263,13 @@ function Grid.generate_character(index)
 	end
 end
 
+function Grid.draw_stats()
+	local cx = Grid.cx(Grid.w + 1)
+	local cy = Grid.cy(Grid.h - 1)
+
+	spr(BACKGROUND.SQUARE_2x2, cx, cy, 0, 1, 0, 0, 2, 2)
+end
+
 function Grid.draw_character(t)
 	local char = Grid.character
 	if char == nil then
@@ -268,8 +277,8 @@ function Grid.draw_character(t)
 		return
 	end
 
-	local cx = Grid.cx(Grid.w)
-	local cy = Grid.cy(Grid.h - 5)
+	local cx = Grid.cx(Grid.w + 1)
+	local cy = Grid.cy(Grid.h - 4)
 
 	local i = (t // 8) % #char.anim_idle.sprites + 1
 	local frame = char.anim_idle.sprites[i]
@@ -344,6 +353,31 @@ function Grid.draw_board()
 			end
 		end
 	end
+end
+
+function Grid.gen_next_binding()
+	local binding = Runes.gen_binding_rune()
+
+	Grid.next_binding = {
+		rune1 = binding.rune1,
+		rune2 = binding.rune2,
+		x = Grid.w + 1,
+		y = 0,
+		rotation = 0,
+	}
+end
+
+function Grid.draw_next_binding()
+	local next = Grid.next_binding
+	if not next then
+		return
+	end
+
+	local x1, y1, x2, y2 = Grid.get_binding_xy(next)
+	local spr1, spr2 = Grid.get_binding_spr(next)
+
+	spr(spr1, Grid.cx(x1), Grid.cy(y1), 0)
+	spr(spr2, Grid.cx(x2), Grid.cy(y2), 0)
 end
 
 function Grid.spawn_binding(binding)
@@ -664,7 +698,7 @@ function Grid.cy(y)
 	return (y + Grid.py) * Grid.cell_size
 end
 
-function Grid.draw_background()
+function Grid.draw_border()
 	for y = 0, Grid.h + 1 do
 		local cy = Grid.cy(y - 1)
 		for x = 0, Grid.w + 1 do
@@ -681,9 +715,16 @@ function Grid.draw_background()
 			end
 		end
 	end
+
+	-- above next pill
+	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 1), Grid.cy(-1))
+	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 2), Grid.cy(-1))
+
+	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 1), Grid.cy(1))
+	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 2), Grid.cy(1))
 end
 
-function Grid.draw_border()
+function Grid.draw_border_deprecated()
 	for y = 0, Grid.h - 1 do
 		local cy = Grid.cy(y)
 		for x = 0, Grid.w - 1 do
@@ -738,8 +779,12 @@ function Grid.eval()
 		return
 	end
 
+	if Grid.next_binding == nil then
+		Grid.gen_next_binding()
+	end
 	if Grid.active_binding == nil then
-		Grid.spawn_binding(Runes.gen_binding_rune())
+		Grid.spawn_binding(Grid.next_binding)
+		Grid.next_binding = nil
 	else
 		Grid.grav()
 		Grid.count_x_rle()
@@ -878,7 +923,7 @@ Grid.generate_stones(1)
 Grid.generate_character(1)
 
 function TIC()
-	Audio.playBGM(TRACK.FLORA)
+	-- Audio.playBGM(TRACK.FLORA)
 
 	Console.update()
 	if btnp(KEYMAP_P1.A) then
@@ -912,13 +957,15 @@ function TIC()
 	end
 
 	cls(0)
-	Grid.draw_background()
 	Grid.draw_border()
+	-- Grid.draw_border()
 	Grid.draw_board()
 	Grid.draw_static_bindings()
 	Grid.draw_active_binding()
 	Grid.draw_halves()
 	Grid.draw_character(t)
+	Grid.draw_stats()
+	Grid.draw_next_binding()
 	Console.draw()
 	t = t + 1
 end
@@ -1161,4 +1208,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
