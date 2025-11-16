@@ -35,7 +35,7 @@ local Screen = {
 }
 
 Console = {
-	open = true,
+	open = false,
 	lines = {},
 	max = 220,
 	scroll = 0,
@@ -49,6 +49,7 @@ function Console.toggle()
 end
 
 function Console.log(msg)
+	trace(msg)
 	local t = tstamp()
 
 	local hours = math.floor(t / 3600) % 24
@@ -203,6 +204,7 @@ local Grid = {
 	py = 1,
 	h = 15, -- perfect for tic80 screen size
 	w = 8,
+	num_stones = 0,
 	next_binding = nil,
 	static_bindings = {},
 	active_binding = nil,
@@ -224,6 +226,7 @@ function Grid:new(player)
 	g.h = Grid.h
 	g.w = Grid.w
 	g.interval = Grid.interval
+	g.stones = Grid.stones
 
 	g.static_bindings = {}
 	g.active_binding = nil
@@ -369,6 +372,21 @@ function Grid:generate_stones(level)
 		spr = 288,
 		color = "E",
 	}
+
+	self.num_stones = 3
+end
+
+function Grid:count_stones()
+	local count = 0
+	for y = 0, self.h - 1, 1 do
+		for x = 0, self.w - 1, 1 do
+			if self.board[y][x] ~= nil and self.board[y][x].type == "stone" then
+				count = count + 1
+			end
+		end
+	end
+
+	self.num_stones = count
 end
 
 function Grid:draw_board()
@@ -382,6 +400,8 @@ function Grid:draw_board()
 		end
 	end
 end
+
+function Grid:draw_num_stones() end
 
 function Grid:gen_next_binding()
 	local binding = Runes.gen_binding_rune()
