@@ -219,7 +219,7 @@ function Grid:new(player)
 	local g = setmetatable({}, Grid)
 
 	g.player = player
-	g.px = (player - 1) * (Grid.w + 1) + 1
+	g.px = (player - 1) * (Grid.w + 4) + 1
 	g.py = Grid.py
 	g.h = Grid.h
 	g.w = Grid.w
@@ -951,6 +951,11 @@ grid1:generate_board()
 grid1:generate_stones(1)
 grid1:generate_character(1)
 
+local grid2 = Grid:new(2)
+grid2:generate_board()
+grid2:generate_stones(1)
+grid2:generate_character(1)
+
 num_players = 1
 
 function TIC()
@@ -997,6 +1002,16 @@ function TIC()
 	grid1:draw_character(t)
 	grid1:draw_stats()
 	grid1:draw_next_binding()
+
+	grid2:draw_border()
+	grid2:draw_board()
+	grid2:draw_static_bindings()
+	grid2:draw_active_binding()
+	grid2:draw_halves()
+	grid2:draw_character(t)
+	grid2:draw_stats()
+	grid2:draw_next_binding()
+
 	Console.draw()
 	t = t + 1
 end
