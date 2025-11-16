@@ -188,6 +188,8 @@ local BORDER = {
 
 local Grid = {
 	cell_size = 8,
+	px = 1,
+	py = 1,
 	h = 16,
 	w = 10,
 	static_bindings = {},
@@ -257,8 +259,8 @@ function Grid.draw_character(t)
 		return
 	end
 
-	cx = Grid.w * Grid.cell_size
-	cy = (Grid.h - 2) * Grid.cell_size
+	local cx = Grid.cx(Grid.w)
+	local cy = Grid.cy(Grid.h - 5)
 
 	local i = (t // 8) % #char.anim_idle.sprites + 1
 	local frame = char.anim_idle.sprites[i]
@@ -643,11 +645,19 @@ function Grid.print()
 	end
 end
 
+function Grid.cx(x)
+	return (x + Grid.px) * Grid.cell_size
+end
+
+function Grid.cy(y)
+	return (y + Grid.py) * Grid.cell_size
+end
+
 function Grid.draw_border()
 	for y = 0, Grid.h - 1 do
-		local cy = y * Grid.cell_size
+		local cy = Grid.cy(y)
 		for x = 0, Grid.w - 1 do
-			local cx = x * Grid.cell_size
+			local cx = Grid.cx(x)
 
 			if y == 0 then
 				if x == 0 then
@@ -823,8 +833,8 @@ function Grid.remove_marked()
 
 	for _, pos in ipairs(to_remove_diff) do
 		Grid.board[pos.y][pos.x] = nil
-		local cx = pos.x * Grid.cell_size
-		local cy = pos.y * Grid.cell_size
+		local cx = Grid.cx(pos.x)
+		local cy = Grid.cy(pox.y)
 		spr(BORDER.CENTER, cx, cy, 0)
 	end
 end
