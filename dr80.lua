@@ -401,7 +401,13 @@ function Grid:draw_board()
 	end
 end
 
-function Grid:draw_num_stones() end
+function Grid:draw_num_stones()
+	local offset = 5
+	if self.num_stones >= 10 then
+		offset = 2
+	end
+	print(self.num_stones, self:cx(self.w + 1) + offset, self:cy(self.h - 6) - (Grid.cell_size // 4), 8, false)
+end
 
 function Grid:gen_next_binding()
 	local binding = Runes.gen_binding_rune()
@@ -1022,6 +1028,7 @@ function TIC()
 	grid1:draw_character(t)
 	grid1:draw_stats()
 	grid1:draw_next_binding()
+	grid1:draw_num_stones()
 
 	grid2:draw_border()
 	grid2:draw_board()
