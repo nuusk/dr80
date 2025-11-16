@@ -406,7 +406,7 @@ function Grid:draw_num_stones()
 	if self.num_stones >= 10 then
 		offset = 2
 	end
-	print(self.num_stones, self:cx(self.w + 1) + offset, self:cy(self.h - 6) - (Grid.cell_size // 4), 8, false)
+	print(self.num_stones, self:cx(self.w + 1) + offset, self:cy(self.h - 6) - (Grid.cell_size // 4), 8, true)
 end
 
 function Grid:gen_next_binding()
@@ -965,6 +965,10 @@ function Grid:remove_marked()
 		local cx = self:cx(pos.x)
 		local cy = self:cy(pos.y)
 		spr(BORDER.CENTER, cx, cy, 0)
+	end
+
+	if self.drop_trigger == true then
+		self:count_stones()
 	end
 end
 
