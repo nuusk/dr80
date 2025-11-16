@@ -198,6 +198,7 @@ local BACKGROUND = {
 
 local Grid = {
 	cell_size = 8,
+	player = 1,
 	px = 1,
 	py = 1,
 	h = 15, -- perfect for tic80 screen size
@@ -212,6 +213,33 @@ local Grid = {
 	is_paused = false,
 	character = nil,
 }
+Grid.__index = Grid
+
+function Grid:new(player)
+	local g = setmetatable({}, Grid)
+
+	g.player = player
+	g.px = (player - 1) * (Grid.w + 1) + 1
+	g.py = Grid.py
+	g.h = Grid.h
+	g.w = Grid.w
+	g.interval = Grid.interval
+
+	g.static_bindings = {}
+	g.active_binding = nil
+	g.halves = {}
+	g.drop_phase = false
+	g.board = {}
+	g.is_paused = false
+	g.character = nil
+	g.next_binding = nil
+
+	g:generate_board()
+	g:generate_stones(1)
+	g:generate_character(player)
+
+	return g
+end
 
 local STONES = {
 	{ name = "R", spr = 256 },
@@ -233,25 +261,25 @@ local CHAR_1_ANIMATION_IDLE = {
 	408,
 }
 
-function Grid.effective_interval()
+function Grid:effective_interval()
 	if btn(KEYMAP_P1.DOWN) then
-		return Grid.interval / 10
+		return self.interval / 10
 	end
-	return Grid.interval
+	return self.interval
 end
 
-function Grid.generate_board()
-	for y = 0, Grid.h - 1, 1 do
-		Grid.board[y] = {}
-		for x = 0, Grid.w - 1, 1 do
-			Grid.board[y][x] = nil
+function Grid:generate_board()
+	for y = 0, self.h - 1, 1 do
+		self.board[y] = {}
+		for x = 0, self.w - 1, 1 do
+			self.board[y][x] = nil
 		end
 	end
 end
 
-function Grid.generate_character(index)
+function Grid:generate_character(index)
 	if index == 1 then
-		Grid.character = {
+		self.character = {
 			state = "idle",
 			anim_idle = {
 				sprites = CHAR_1_ANIMATION_IDLE,
@@ -263,22 +291,22 @@ function Grid.generate_character(index)
 	end
 end
 
-function Grid.draw_stats()
-	local cx = Grid.cx(Grid.w + 1)
-	local cy = Grid.cy(Grid.h - 1)
+function Grid:draw_stats()
+	local cx = self:cx(self.w + 1)
+	local cy = self:cy(self.h - 1)
 
 	spr(BACKGROUND.SQUARE_2x2, cx, cy, 0, 1, 0, 0, 2, 2)
 end
 
-function Grid.draw_character(t)
-	local char = Grid.character
+function Grid:draw_character(t)
+	local char = self.character
 	if char == nil then
 		Console.log("ERROR: character is nil, fix the code")
 		return
 	end
 
-	local cx = Grid.cx(Grid.w + 1)
-	local cy = Grid.cy(Grid.h - 4)
+	local cx = self:cx(self.w + 1)
+	local cy = self:cy(self.h - 4)
 
 	local i = (t // 8) % #char.anim_idle.sprites + 1
 	local frame = char.anim_idle.sprites[i]
@@ -287,7 +315,7 @@ function Grid.draw_character(t)
 	end
 end
 
-function Grid.generate_stones(level)
+function Grid:generate_stones(level)
 	local presets = {
 		[1] = { n = 3, safe = 0.55 },
 		[2] = { n = 5, safe = 0.50 },
@@ -306,11 +334,11 @@ function Grid.generate_stones(level)
 		return {}
 	end
 
-	local h_start = math.floor(preset.safe * Grid.h)
+	local h_start = math.floor(preset.safe * self.h)
 	local bag = {}
 
-	for ly = h_start, Grid.h - 1, 1 do
-		for lx = 0, Grid.w - 1, 1 do
+	for ly = h_start, self.h - 1, 1 do
+		for lx = 0, self.w - 1, 1 do
 			table.insert(bag, { x = lx, y = ly })
 		end
 	end
@@ -318,7 +346,7 @@ function Grid.generate_stones(level)
 	local rand_num = math.random(#bag)
 	local rand_pos = bag[rand_num]
 	table.remove(bag, rand_num)
-	Grid.board[rand_pos.y][rand_pos.x] = {
+	self.board[rand_pos.y][rand_pos.x] = {
 		type = "stone",
 		spr = 256,
 		color = "R",
@@ -327,7 +355,7 @@ function Grid.generate_stones(level)
 	rand_num = math.random(#bag)
 	rand_pos = bag[rand_num]
 	table.remove(bag, rand_num)
-	Grid.board[rand_pos.y][rand_pos.x] = {
+	self.board[rand_pos.y][rand_pos.x] = {
 		type = "stone",
 		spr = 272,
 		color = "S",
@@ -336,60 +364,60 @@ function Grid.generate_stones(level)
 	rand_num = math.random(#bag)
 	rand_pos = bag[rand_num]
 	table.remove(bag, rand_num)
-	Grid.board[rand_pos.y][rand_pos.x] = {
+	self.board[rand_pos.y][rand_pos.x] = {
 		type = "stone",
 		spr = 288,
 		color = "E",
 	}
 end
 
-function Grid.draw_board()
-	for y = 0, Grid.h - 1, 1 do
-		for x = 0, Grid.w - 1, 1 do
-			if Grid.board[y][x] ~= nil then
-				local cx = Grid.cx(x)
-				local cy = Grid.cy(y)
-				spr(Grid.board[y][x].spr, cx, cy, 0)
+function Grid:draw_board()
+	for y = 0, self.h - 1, 1 do
+		for x = 0, self.w - 1, 1 do
+			if self.board[y][x] ~= nil then
+				local cx = self:cx(x)
+				local cy = self:cy(y)
+				spr(self.board[y][x].spr, cx, cy, 0)
 			end
 		end
 	end
 end
 
-function Grid.gen_next_binding()
+function Grid:gen_next_binding()
 	local binding = Runes.gen_binding_rune()
 
-	Grid.next_binding = {
+	self.next_binding = {
 		rune1 = binding.rune1,
 		rune2 = binding.rune2,
-		x = Grid.w + 1,
+		x = self.w + 1,
 		y = 0,
 		rotation = 0,
 	}
 end
 
-function Grid.draw_next_binding()
-	local next = Grid.next_binding
+function Grid:draw_next_binding()
+	local next = self.next_binding
 	if not next then
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_binding_xy(next)
-	local spr1, spr2 = Grid.get_binding_spr(next)
+	local x1, y1, x2, y2 = self:get_binding_xy(next)
+	local spr1, spr2 = self:get_binding_spr(next)
 
-	spr(spr1, Grid.cx(x1), Grid.cy(y1), 0)
-	spr(spr2, Grid.cx(x2), Grid.cy(y2), 0)
+	spr(spr1, self:cx(x1), self:cy(y1), 0)
+	spr(spr2, self:cx(x2), self:cy(y2), 0)
 end
 
-function Grid.spawn_binding(binding)
+function Grid:spawn_binding(binding)
 	local spawnx = 0
-	if Grid.w % 2 == 0 then
-		spawnx = Grid.w / 2 - 1
+	if self.w % 2 == 0 then
+		spawnx = self.w / 2 - 1
 	else
-		spawnx = (Grid.w - 1) / 2
+		spawnx = (self.w - 1) / 2
 	end
 	local spawny = 0
 
-	Grid.active_binding = {
+	self.active_binding = {
 		rune1 = binding.rune1,
 		rune2 = binding.rune2,
 		x = spawnx,
@@ -398,67 +426,67 @@ function Grid.spawn_binding(binding)
 	}
 end
 
-function Grid.rotate_clockwise()
-	if Grid.active_binding == nil then
+function Grid:rotate_clockwise()
+	if self.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
 	end
 
-	local next_rotation = (Grid.active_binding.rotation + 1) % 4
-	local x1, y1, x2, y2 = Grid.get_binding_xy(Grid.active_binding, next_rotation)
-	if Grid.available(x1, y1) and Grid.available(x2, y2) then
-		Grid.active_binding.rotation = next_rotation
+	local next_rotation = (self.active_binding.rotation + 1) % 4
+	local x1, y1, x2, y2 = self:get_binding_xy(self.active_binding, next_rotation)
+	if self:available(x1, y1) and self:available(x2, y2) then
+		self.active_binding.rotation = next_rotation
 	else
 		Audio.play(SFX.INVALID)
 	end
 end
 
-function Grid.rotate_counterclockwise()
-	if Grid.active_binding == nil then
+function Grid:rotate_counterclockwise()
+	if self.active_binding == nil then
 		Console.log("error rotating binding - no active binding in game")
 		return
 	end
 
-	local next_rotation = (Grid.active_binding.rotation + 3) % 4
-	local x1, y1, x2, y2 = Grid.get_binding_xy(Grid.active_binding, next_rotation)
-	if Grid.available(x1, y1) and Grid.available(x2, y2) then
-		Grid.active_binding.rotation = next_rotation
+	local next_rotation = (self.active_binding.rotation + 3) % 4
+	local x1, y1, x2, y2 = self:get_binding_xy(self.active_binding, next_rotation)
+	if self:available(x1, y1) and self:available(x2, y2) then
+		self.active_binding.rotation = next_rotation
 	else
 		Audio.play(SFX.INVALID)
 	end
 end
 
-function Grid.move_left()
-	if Grid.active_binding == nil then
+function Grid:move_left()
+	if self.active_binding == nil then
 		Console.log("error moving binding left - no active binding in game")
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_binding_xy()
-	if Grid.available(x1 - 1, y1) and Grid.available(x2 - 1, y2) then
-		Grid.active_binding.x = Grid.active_binding.x - 1
+	local x1, y1, x2, y2 = self:get_binding_xy()
+	if self:available(x1 - 1, y1) and self:available(x2 - 1, y2) then
+		self.active_binding.x = self.active_binding.x - 1
 	else
 		Audio.play(SFX.INVALID)
 	end
 end
 
-function Grid.move_right()
-	if Grid.active_binding == nil then
+function Grid:move_right()
+	if self.active_binding == nil then
 		Console.log("error moving binding right - no active binding in game")
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_binding_xy()
-	if Grid.available(x1 + 1, y1) and Grid.available(x2 + 1, y2) then
-		Grid.active_binding.x = Grid.active_binding.x + 1
+	local x1, y1, x2, y2 = self:get_binding_xy()
+	if self:available(x1 + 1, y1) and self:available(x2 + 1, y2) then
+		self.active_binding.x = self.active_binding.x + 1
 	else
 		Audio.play(SFX.INVALID)
 	end
 end
 
 -- instead of bunch of for loops, prepare a table / dictionary to quickly check availability
-function Grid.available(x, y)
-	if x < 0 or x > Grid.w - 1 then
+function Grid:available(x, y)
+	if x < 0 or x > self.w - 1 then
 		return false
 	end
 
@@ -466,19 +494,19 @@ function Grid.available(x, y)
 		return true
 	end
 
-	if y >= Grid.h then
+	if y >= self.h then
 		return false
 	end
 
-	if Grid.board[y][x] == nil then
+	if self.board[y][x] == nil then
 		return true
 	end
 
 	return false
 end
 
-function Grid.get_binding_xy(binding, rotation)
-	binding = binding or Grid.active_binding
+function Grid:get_binding_xy(binding, rotation)
+	binding = binding or self.active_binding
 	rotation = rotation or binding.rotation
 	if rotation == 0 then
 		return binding.x, binding.y, binding.x + 1, binding.y
@@ -493,8 +521,8 @@ function Grid.get_binding_xy(binding, rotation)
 	return nil, nil, nil, nil
 end
 
-function Grid.get_binding_spr(binding)
-	binding = binding or Grid.active_binding
+function Grid:get_binding_spr(binding)
+	binding = binding or self.active_binding
 	if not binding then
 		Console.log("error: binding not found")
 		return
@@ -514,100 +542,100 @@ function Grid.get_binding_spr(binding)
 	return spr1, spr2
 end
 
-function Grid.draw_static_bindings()
-	for _, binding in ipairs(Grid.static_bindings) do
+function Grid:draw_static_bindings()
+	for _, binding in ipairs(self.static_bindings) do
 		if binding == nil then
 			Console.log("static pill is nil")
 			return
 		end
 
-		local x1, y1, x2, y2 = Grid.get_binding_xy(binding)
-		local spr1, spr2 = Grid.get_binding_spr(binding)
+		local x1, y1, x2, y2 = self:get_binding_xy(binding)
+		local spr1, spr2 = self:get_binding_spr(binding)
 
 		Console.log(x1)
 
-		spr(spr1, x1 * Grid.cell_size, y1 * Grid.cell_size, 0)
-		spr(spr2, x2 * Grid.cell_size, y2 * Grid.cell_size, 0)
+		spr(spr1, x1 * self.cell_size, y1 * self.cell_size, 0)
+		spr(spr2, x2 * self.cell_size, y2 * self.cell_size, 0)
 	end
 end
 
-function Grid.draw_active_binding()
-	if Grid.active_binding == nil then
+function Grid:draw_active_binding()
+	if self.active_binding == nil then
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_binding_xy()
-	local spr1, spr2 = Grid.get_binding_spr()
+	local x1, y1, x2, y2 = self:get_binding_xy()
+	local spr1, spr2 = self:get_binding_spr()
 
-	spr(spr1, Grid.cx(x1), Grid.cy(y1), 0)
-	spr(spr2, Grid.cx(x2), Grid.cy(y2), 0)
+	spr(spr1, self:cx(x1), self:cy(y1), 0)
+	spr(spr2, self:cx(x2), self:cy(y2), 0)
 end
 
-function Grid.draw_halves()
-	for _, half in ipairs(Grid.halves) do
-		spr(half.spr, half.x * Grid.cell_size, half.y * Grid.cell_size, 0)
+function Grid:draw_halves()
+	for _, half in ipairs(self.halves) do
+		spr(half.spr, half.x * self.cell_size, half.y * self.cell_size, 0)
 	end
 end
 
-function Grid.grav_halves()
+function Grid:grav_halves()
 	local still_falling = false
 	local already_moved = {}
 
-	for y = Grid.h - 1, 0, -1 do
+	for y = self.h - 1, 0, -1 do
 		if already_moved[y] == nil then
 			already_moved[y] = {}
 		end
 	end
 
-	for y = Grid.h - 1, 0, -1 do
-		for x = Grid.w - 1, 0, -1 do
+	for y = self.h - 1, 0, -1 do
+		for x = self.w - 1, 0, -1 do
 			if already_moved[y][x] == true then
 				goto continue
 			end
 
-			if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
-				Console.log(string.format("x: %d, y: %d, type: %s", x, y, Grid.board[y][x].type))
+			if self.board[y] ~= nil and self.board[y][x] ~= nil then
+				Console.log(string.format("x: %d, y: %d, type: %s", x, y, self.board[y][x].type))
 
-				if Grid.board[y][x].type == "half" then
-					local half = Grid.board[y][x]
-					if Grid.available(x, y + 1) then
-						Grid.board[y + 1][x] = {
+				if self.board[y][x].type == "half" then
+					local half = self.board[y][x]
+					if self:available(x, y + 1) then
+						self.board[y + 1][x] = {
 							type = "half",
 							color = half.color,
 							spr = half.spr,
 						}
-						Grid.board[y][x] = nil
+						self.board[y][x] = nil
 						still_falling = true
 					else
 						Audio.play(SFX.DROP)
-						Grid.board[y][x] = {
+						self.board[y][x] = {
 							type = "half",
 							color = half.color,
 							spr = half.spr,
 						}
 					end
-				elseif Grid.board[y][x].type == "binding" then
-					local binding = Grid.board[y][x]
+				elseif self.board[y][x].type == "binding" then
+					local binding = self.board[y][x]
 					local oh_pos = binding.other_half
-					local is_available_binding = Grid.available(x, y + 1)
-					local is_available_oh = Grid.available(oh_pos.x, oh_pos.y + 1)
+					local is_available_binding = self:available(x, y + 1)
+					local is_available_oh = self:available(oh_pos.x, oh_pos.y + 1)
 
 					if oh_pos.x == x then
 						if is_available_binding then
-							Grid.board[y + 1][x] = table.deep_copy(Grid.board[y][x])
-							Grid.board[y + 1][x].other_half.y = oh_pos.y + 1
-							Grid.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(Grid.board[oh_pos.y][oh_pos.x])
-							Grid.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
-							Grid.board[oh_pos.y][oh_pos.x] = nil
+							self.board[y + 1][x] = table.deep_copy(self.board[y][x])
+							self.board[y + 1][x].other_half.y = oh_pos.y + 1
+							self.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(self.board[oh_pos.y][oh_pos.x])
+							self.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
+							self.board[oh_pos.y][oh_pos.x] = nil
 							already_moved[oh_pos.y][oh_pos.x] = true
 						end
 					elseif is_available_binding and is_available_oh then
-						Grid.board[y + 1][x] = table.deep_copy(Grid.board[y][x])
-						Grid.board[y + 1][x].other_half.y = oh_pos.y + 1
-						Grid.board[y][x] = nil
-						Grid.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(Grid.board[oh_pos.y][oh_pos.x])
-						Grid.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
-						Grid.board[oh_pos.y][oh_pos.x] = nil
+						self.board[y + 1][x] = table.deep_copy(self.board[y][x])
+						self.board[y + 1][x].other_half.y = oh_pos.y + 1
+						self.board[y][x] = nil
+						self.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(self.board[oh_pos.y][oh_pos.x])
+						self.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
+						self.board[oh_pos.y][oh_pos.x] = nil
 						already_moved[oh_pos.y][oh_pos.x] = true
 						still_falling = true
 					else
@@ -623,42 +651,42 @@ function Grid.grav_halves()
 	return still_falling
 end
 
-function Grid.grav()
-	local active = Grid.active_binding
+function Grid:grav()
+	local active = self.active_binding
 	if active == nil then
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_binding_xy()
+	local x1, y1, x2, y2 = self:get_binding_xy()
 
-	if Grid.available(x1, y1 + 1) and Grid.available(x2, y2 + 1) then
+	if self:available(x1, y1 + 1) and self:available(x2, y2 + 1) then
 		active.y = active.y + 1
 	else
 		Audio.play(SFX.DROP)
-		Grid.mark_active_binding_as_static()
+		self:mark_active_binding_as_static()
 	end
 end
 
-function Grid.mark_active_binding_as_static()
-	if Grid.active_binding == nil then
+function Grid:mark_active_binding_as_static()
+	if self.active_binding == nil then
 		Console.log("cannot mark binding as static, active binding not found")
 		return
 	end
 
-	local x1, y1, x2, y2 = Grid.get_binding_xy()
-	local spr1, spr2 = Grid.get_binding_spr()
-	Grid.board[y1][x1] = {
+	local x1, y1, x2, y2 = self:get_binding_xy()
+	local spr1, spr2 = self:get_binding_spr()
+	self.board[y1][x1] = {
 		type = "binding",
-		color = Grid.active_binding.rune1.name,
+		color = self.active_binding.rune1.name,
 		spr = spr1,
 		other_half = {
 			x = x2,
 			y = y2,
 		},
 	}
-	Grid.board[y2][x2] = {
+	self.board[y2][x2] = {
 		type = "binding",
-		color = Grid.active_binding.rune2.name,
+		color = self.active_binding.rune2.name,
 		spr = spr2,
 		other_half = {
 			x = x1,
@@ -666,20 +694,20 @@ function Grid.mark_active_binding_as_static()
 		},
 	}
 
-	Grid.active_binding = nil
+	self.active_binding = nil
 end
 
-function Grid.print()
-	for y = 0, Grid.h - 1 do
-		for x = 0, Grid.w - 1 do
+function Grid:print()
+	for y = 0, self.h - 1 do
+		for x = 0, self.w - 1 do
 			local color = "nil"
 			local type = "nil"
-			if Grid.board[y][x] ~= nil then
-				color = Grid.board[y][x].color
-				type = Grid.board[y][x].type
+			if self.board[y][x] ~= nil then
+				color = self.board[y][x].color
+				type = self.board[y][x].type
 
 				format = string.format("[%d][%d]:(%s)%s", y, x, color, type)
-				oh = Grid.board[y][x].other_half
+				oh = self.board[y][x].other_half
 				if oh then
 					format = string.format("[%d][%d]:(%s)%s {oh y:%d,x:%d}", y, x, color, type, oh.y, oh.x)
 				end
@@ -690,58 +718,58 @@ function Grid.print()
 	end
 end
 
-function Grid.cx(x)
-	return (x + Grid.px) * Grid.cell_size
+function Grid:cx(x)
+	return (x + self.px) * self.cell_size
 end
 
-function Grid.cy(y)
-	return (y + Grid.py) * Grid.cell_size
+function Grid:cy(y)
+	return (y + self.py) * self.cell_size
 end
 
-function Grid.draw_border()
-	for y = 0, Grid.h + 1 do
-		local cy = Grid.cy(y - 1)
-		for x = 0, Grid.w + 1 do
+function Grid:draw_border()
+	for y = 0, self.h + 1 do
+		local cy = self:cy(y - 1)
+		for x = 0, self.w + 1 do
 			ok = false
-			if y == 0 or y == Grid.h + 1 then
+			if y == 0 or y == self.h + 1 then
 				ok = true
 			end
-			if x == 0 or x == Grid.w + 1 then
+			if x == 0 or x == self.w + 1 then
 				ok = true
 			end
 			if ok == true then
-				local cx = Grid.cx(x - 1)
+				local cx = self:cx(x - 1)
 				spr(BACKGROUND.SINGLE, cx, cy, 0)
 			end
 		end
 	end
 
 	-- above next pill
-	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 1), Grid.cy(-1))
-	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 2), Grid.cy(-1))
+	spr(BACKGROUND.SINGLE, self:cx(self.w + 1), self:cy(-1))
+	spr(BACKGROUND.SINGLE, self:cx(self.w + 2), self:cy(-1))
 
-	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 1), Grid.cy(1))
-	spr(BACKGROUND.SINGLE, Grid.cx(Grid.w + 2), Grid.cy(1))
+	spr(BACKGROUND.SINGLE, self:cx(self.w + 1), self:cy(1))
+	spr(BACKGROUND.SINGLE, self:cx(self.w + 2), self:cy(1))
 end
 
-function Grid.draw_border_deprecated()
-	for y = 0, Grid.h - 1 do
-		local cy = Grid.cy(y)
-		for x = 0, Grid.w - 1 do
-			local cx = Grid.cx(x)
+function Grid:draw_border_deprecated()
+	for y = 0, self.h - 1 do
+		local cy = self:cy(y)
+		for x = 0, self.w - 1 do
+			local cx = self:cx(x)
 
 			if y == 0 then
 				if x == 0 then
 					spr(BORDER.TOPLEFT, cx, cy, 0)
-				elseif x == Grid.w - 1 then
+				elseif x == self.w - 1 then
 					spr(BORDER.TOPRIGHT, cx, cy, 0)
 				else
 					spr(BORDER.TOP, cx, cy, 0)
 				end
-			elseif y == Grid.h - 1 then
+			elseif y == self.h - 1 then
 				if x == 0 then
 					spr(BORDER.BOTTOMLEFT, cx, cy, 0)
-				elseif x == Grid.w - 1 then
+				elseif x == self.w - 1 then
 					spr(BORDER.BOTTOMRIGHT, cx, cy, 0)
 				else
 					spr(BORDER.BOTTOM, cx, cy, 0)
@@ -749,7 +777,7 @@ function Grid.draw_border_deprecated()
 			else
 				if x == 0 then
 					spr(BORDER.LEFT, cx, cy, 0)
-				elseif x == Grid.w - 1 then
+				elseif x == self.w - 1 then
 					spr(BORDER.RIGHT, cx, cy, 0)
 				else
 					spr(BORDER.CENTER, cx, cy, 0)
@@ -772,67 +800,67 @@ local Game = {
 	scene = SCENES.GAME,
 }
 
-function Grid.eval()
-	if Grid.drop_trigger == true then
-		local next_drop_trigger = Grid.grav_halves()
-		Grid.drop_trigger = next_drop_trigger
+function Grid:eval()
+	if self.drop_trigger == true then
+		local next_drop_trigger = self:grav_halves()
+		self.drop_trigger = next_drop_trigger
 		return
 	end
 
-	if Grid.next_binding == nil then
-		Grid.gen_next_binding()
+	if self.next_binding == nil then
+		self:gen_next_binding()
 	end
-	if Grid.active_binding == nil then
-		Grid.spawn_binding(Grid.next_binding)
-		Grid.next_binding = nil
+	if self.active_binding == nil then
+		self:spawn_binding(self.next_binding)
+		self.next_binding = nil
 	else
-		Grid.grav()
-		Grid.count_x_rle()
-		Grid.count_y_rle()
-		Grid.remove_marked()
+		self:grav()
+		self:count_x_rle()
+		self:count_y_rle()
+		self:remove_marked()
 	end
 end
 
-function Grid.mark_to_remove_on_y(y, from, to)
+function Grid:mark_to_remove_on_y(y, from, to)
 	for x = from, to, 1 do
-		if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
-			Grid.board[y][x].to_remove = true
+		if self.board[y] ~= nil and self.board[y][x] ~= nil then
+			self.board[y][x].to_remove = true
 		end
 	end
 end
 
-function Grid.mark_to_remove_on_x(x, from, to)
+function Grid:mark_to_remove_on_x(x, from, to)
 	for y = from, to, 1 do
-		if Grid.board[y] ~= nil and Grid.board[y][x] ~= nil then
-			Grid.board[y][x].to_remove = true
+		if self.board[y] ~= nil and self.board[y][x] ~= nil then
+			self.board[y][x].to_remove = true
 		end
 	end
 end
 
-function Grid.count_x_rle()
-	for y = 0, Grid.h - 1, 1 do
+function Grid:count_x_rle()
+	for y = 0, self.h - 1, 1 do
 		local acc = nil
-		for x = 0, Grid.w - 1, 1 do
-			if Grid.board[y][x] == nil then
+		for x = 0, self.w - 1, 1 do
+			if self.board[y][x] == nil then
 				acc = nil
 				goto continue
 			end
 			if acc == nil then
 				acc = {
-					color = Grid.board[y][x].color,
+					color = self.board[y][x].color,
 					count = 1,
 				}
-			elseif acc.color == Grid.board[y][x].color then
+			elseif acc.color == self.board[y][x].color then
 				acc.count = acc.count + 1
 			else
 				acc = {
-					color = Grid.board[y][x].color,
+					color = self.board[y][x].color,
 					count = 1,
 				}
 			end
 
 			if acc ~= nil and acc.count > 3 then
-				Grid.mark_to_remove_on_y(y, x - acc.count + 1, x)
+				self:mark_to_remove_on_y(y, x - acc.count + 1, x)
 			end
 
 			::continue::
@@ -840,30 +868,30 @@ function Grid.count_x_rle()
 	end
 end
 
-function Grid.count_y_rle()
-	for x = 0, Grid.w - 1, 1 do
+function Grid:count_y_rle()
+	for x = 0, self.w - 1, 1 do
 		local acc = nil
-		for y = 0, Grid.h - 1, 1 do
-			if Grid.board[y][x] == nil then
+		for y = 0, self.h - 1, 1 do
+			if self.board[y][x] == nil then
 				acc = nil
 				goto continue
 			end
 			if acc == nil then
 				acc = {
-					color = Grid.board[y][x].color,
+					color = self.board[y][x].color,
 					count = 1,
 				}
-			elseif acc.color == Grid.board[y][x].color then
+			elseif acc.color == self.board[y][x].color then
 				acc.count = acc.count + 1
 			else
 				acc = {
-					color = Grid.board[y][x].color,
+					color = self.board[y][x].color,
 					count = 1,
 				}
 			end
 
 			if acc ~= nil and acc.count > 3 then
-				Grid.mark_to_remove_on_x(x, y - acc.count + 1, y)
+				self:mark_to_remove_on_x(x, y - acc.count + 1, y)
 			end
 
 			::continue::
@@ -871,14 +899,14 @@ function Grid.count_y_rle()
 	end
 end
 
-function Grid.remove_marked()
-	local board_copy = table.deep_copy(Grid.board)
+function Grid:remove_marked()
+	local board_copy = table.deep_copy(self.board)
 
 	local to_remove_diff = {}
 	local to_convert_diff = {}
 
-	for y = Grid.h - 1, 0, -1 do
-		for x = Grid.w - 1, 0, -1 do
+	for y = self.h - 1, 0, -1 do
+		for x = self.w - 1, 0, -1 do
 			if not board_copy[y] or not board_copy[y][x] then
 				goto continue
 			end
@@ -891,7 +919,7 @@ function Grid.remove_marked()
 
 				table.insert(to_remove_diff, { x = x, y = y })
 
-				Grid.drop_trigger = true
+				self.drop_trigger = true
 			end
 
 			::continue::
@@ -899,7 +927,7 @@ function Grid.remove_marked()
 	end
 
 	for _, pos in ipairs(to_convert_diff) do
-		local cell = Grid.board[pos.y][pos.x]
+		local cell = self.board[pos.y][pos.x]
 		if cell then
 			cell.type = "half"
 			cell.spr = HALVES_SPR[cell.color]
@@ -907,9 +935,9 @@ function Grid.remove_marked()
 	end
 
 	for _, pos in ipairs(to_remove_diff) do
-		Grid.board[pos.y][pos.x] = nil
-		local cx = Grid.cx(pos.x)
-		local cy = Grid.cy(pos.y)
+		self.board[pos.y][pos.x] = nil
+		local cx = self:cx(pos.x)
+		local cy = self:cy(pos.y)
 		spr(BORDER.CENTER, cx, cy, 0)
 	end
 end
@@ -918,54 +946,57 @@ end
 
 t = 0
 
-Grid.generate_board()
-Grid.generate_stones(1)
-Grid.generate_character(1)
+local grid1 = Grid:new(1)
+grid1:generate_board()
+grid1:generate_stones(1)
+grid1:generate_character(1)
+
+num_players = 1
 
 function TIC()
 	-- Audio.playBGM(TRACK.FLORA)
 
 	Console.update()
 	if btnp(KEYMAP_P1.A) then
-		Grid.rotate_clockwise()
+		grid1:rotate_clockwise()
 	end
 
 	if btnp(KEYMAP_P1.B) then
-		Grid.rotate_counterclockwise()
+		grid1:rotate_counterclockwise()
 	end
 
 	if btnp(KEYMAP_P1.LEFT) then
-		Grid.move_left()
+		grid1:move_left()
 	end
 
 	if btnp(KEYMAP_P1.RIGHT) then
-		Grid.move_right()
+		grid1:move_right()
 	end
 
 	if btnp(KEYMAP_P1.PAUSE) then
-		Grid.is_paused = not Grid.is_paused
-		if Grid.is_paused == true then
+		grid1.is_paused = not grid1.is_paused
+		if grid1.is_paused == true then
 			Console.clear()
-			Grid.print()
+			grid1:print()
 		end
 	end
 
-	if t % Grid.effective_interval() == 0 then
-		if Grid.is_paused ~= true then
-			Grid.eval()
+	if t % grid1:effective_interval() == 0 then
+		if grid1.is_paused ~= true then
+			grid1:eval()
 		end
 	end
 
 	cls(0)
-	Grid.draw_border()
-	-- Grid.draw_border()
-	Grid.draw_board()
-	Grid.draw_static_bindings()
-	Grid.draw_active_binding()
-	Grid.draw_halves()
-	Grid.draw_character(t)
-	Grid.draw_stats()
-	Grid.draw_next_binding()
+	grid1:draw_border()
+	-- grid1:draw_border()
+	grid1:draw_board()
+	grid1:draw_static_bindings()
+	grid1:draw_active_binding()
+	grid1:draw_halves()
+	grid1:draw_character(t)
+	grid1:draw_stats()
+	grid1:draw_next_binding()
 	Console.draw()
 	t = t + 1
 end
