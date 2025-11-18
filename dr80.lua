@@ -197,6 +197,8 @@ local BACKGROUND = {
 	SQUARE_2x2 = 452,
 }
 
+local Menu = {}
+
 local Grid = {
 	cell_size = 8,
 	player = 1,
@@ -818,12 +820,12 @@ end
 -- Game manager --
 
 local SCENES = {
-	TITLE = 0,
+	MENU = 0,
 	GAME = 1,
 }
 
 local Game = {
-	scene = SCENES.GAME,
+	scene = SCENES.MENU,
 }
 
 function Grid:eval()
@@ -988,10 +990,80 @@ grid2:generate_character(1)
 
 num_players = 1
 
+local Menu = {
+	options_padding = 8,
+	options = {
+		["VS GAME"] = {
+			is_selected = true,
+			callback = function() end,
+		},
+		["asd"] = {
+			is_selected = false,
+			callback = function() end,
+		},
+		["asd ad"] = {
+			is_selected = false,
+			callback = function() end,
+		},
+		["asdasd"] = {
+			is_selected = false,
+			callback = function() end,
+		},
+		["asdasd asd asd "] = {
+			is_selected = false,
+			callback = function() end,
+		},
+		["1234 asd "] = {
+			is_selected = false,
+			callback = function() end,
+		},
+		["13raasd asd"] = {
+			is_selected = false,
+			callback = function() end,
+		},
+		["CONTROLS"] = {
+			is_selected = false,
+			callback = function() end,
+		},
+	},
+}
+
+function Menu.print(txt, y_offset)
+	local width = print(txt, 0, -100)
+	print(txt, Screen.width // 2 - width // 2, Screen.height // 2 + y_offset, 8, true)
+end
+
+function Menu.print_options()
+	local i = 0
+	for key, option in pairs(Menu.options) do
+		local offset = Menu.get_offset(i)
+		Menu.print(key, offset)
+		i = i + 1
+	end
+end
+
+function Menu.get_offset_old(i)
+	local count = #Menu.options
+	local middle = math.floor(count / 2)
+	return (i - middle) * Menu.options_padding
+end
+
+function Menu.get_offset(i)
+	local count = #Menu.options
+	local center_index = (count - 1) / 2
+	return (i - center_index) * Menu.options_padding
+end
+
 function TIC()
 	-- Audio.playBGM(TRACK.FLORA)
-
 	Console.update()
+
+	if Game.scene == SCENES.MENU then
+		cls(0)
+		Menu.print_options()
+		return
+	end
+
 	if btnp(KEYMAP_P1.A) then
 		grid1:rotate_clockwise()
 	end
