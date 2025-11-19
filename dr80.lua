@@ -993,35 +993,13 @@ num_players = 1
 local Menu = {
 	options_padding = 8,
 	options = {
-		["VS GAME"] = {
+		{
+			key = "VS GAME",
 			is_selected = true,
 			callback = function() end,
 		},
-		["asd"] = {
-			is_selected = false,
-			callback = function() end,
-		},
-		["asd ad"] = {
-			is_selected = false,
-			callback = function() end,
-		},
-		["asdasd"] = {
-			is_selected = false,
-			callback = function() end,
-		},
-		["asdasd asd asd "] = {
-			is_selected = false,
-			callback = function() end,
-		},
-		["1234 asd "] = {
-			is_selected = false,
-			callback = function() end,
-		},
-		["13raasd asd"] = {
-			is_selected = false,
-			callback = function() end,
-		},
-		["CONTROLS"] = {
+		{
+			key = "CONTROLS",
 			is_selected = false,
 			callback = function() end,
 		},
@@ -1034,23 +1012,14 @@ function Menu.print(txt, y_offset)
 end
 
 function Menu.print_options()
-	local i = 0
-	for key, option in pairs(Menu.options) do
+	for i, option in ipairs(Menu.options) do
 		local offset = Menu.get_offset(i)
-		Menu.print(key, offset)
-		i = i + 1
+		Menu.print(option.key, offset)
 	end
 end
 
-function Menu.get_offset_old(i)
-	local count = #Menu.options
-	local middle = math.floor(count / 2)
-	return (i - middle) * Menu.options_padding
-end
-
 function Menu.get_offset(i)
-	local count = #Menu.options
-	local center_index = (count - 1) / 2
+	local center_index = (#Menu.options + 1) // 2
 	return (i - center_index) * Menu.options_padding
 end
 
