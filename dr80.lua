@@ -1026,6 +1026,7 @@ num_players = 1
 
 local Menu = {
 	options_padding = 8,
+	selected_option = 1,
 	options = {
 		{
 			key = "VS GAME",
@@ -1040,15 +1041,33 @@ local Menu = {
 	},
 }
 
-function Menu.print(txt, y_offset)
+function Menu.print(txt, is_selected, y_offset)
 	local width = print(txt, 0, -100)
-	print(txt, Screen.width // 2 - width // 2, Screen.height // 2 + y_offset, 8, true)
+	if is_selected then
+		spr(368, Screen.width // 2 - width // 2 - 16, Screen.height // 2 + y_offset - 2)
+		print(txt, Screen.width // 2 - width // 2, Screen.height // 2 + y_offset, 8, true)
+	else
+		print(txt, Screen.width // 2 - width // 2, Screen.height // 2 + y_offset, 8, true)
+	end
+end
+
+function Menu.up()
+	if Menu.selected_option > 1 then
+		Menu.selected_option = Menu.selected_option - 1
+	end
+end
+
+function Menu.down()
+	if Menu.selected_option < #Menu.options then
+		Menu.selected_option = Menu.selected_option + 1
+	end
 end
 
 function Menu.print_options()
 	for i, option in ipairs(Menu.options) do
 		local offset = Menu.get_offset(i)
-		Menu.print(option.key, offset)
+		local is_selected = i == Menu.selected_option
+		Menu.print(option.key, is_selected, offset)
 	end
 end
 
@@ -1064,6 +1083,11 @@ function TIC()
 	if Game.scene == SCENES.MENU then
 		cls(0)
 		Menu.print_options()
+		if btnp(KEYMAP_P1.UP) then
+			Menu.up()
+		elseif btnp(KEYMAP_P1.DOWN) then
+			Menu.down()
+		end
 		return
 	end
 
