@@ -167,13 +167,47 @@ end
 -- Keymap start --
 
 local KEYMAP_P1 = {
-	LEFT = 2,
-	RIGHT = 3,
 	UP = 0,
 	DOWN = 1,
-	A = 5,
+	LEFT = 2,
+	RIGHT = 3,
 	B = 4,
+	A = 5,
 	PAUSE = 6,
+	SUPER = 7,
+}
+
+local KEYMAP_P2 = {
+	UP = 8,
+	DOWN = 9,
+	LEFT = 10,
+	RIGHT = 11,
+	B = 12,
+	A = 13,
+	PAUSE = 14,
+	SUPER = 15,
+}
+
+local KEYMAP_P3 = {
+	UP = 16,
+	DOWN = 17,
+	LEFT = 18,
+	RIGHT = 19,
+	B = 20,
+	A = 21,
+	PAUSE = 22,
+	SUPER = 23,
+}
+
+local KEYMAP_P4 = {
+	UP = 24,
+	DOWN = 25,
+	LEFT = 26,
+	RIGHT = 27,
+	B = 28,
+	A = 29,
+	PAUSE = 30,
+	SUPER = 31,
 }
 
 -- Keymap end --
