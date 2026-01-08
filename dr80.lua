@@ -231,8 +231,6 @@ local BACKGROUND = {
 	SQUARE_2x2 = 452,
 }
 
-local Menu = {}
-
 local Grid = {
 	cell_size = 8,
 	player = 1,
@@ -1024,57 +1022,111 @@ grid2:generate_character(1)
 
 num_players = 1
 
-local Menu = {
-	options_padding = 8,
-	selected_option = 1,
+-- "Class"
+local Menu = {}
+Menu.__index = Menu
+
+function Menu:new(opts)
+	local m = setmetatable({}, Menu)
+	m.options_padding = opts.options_padding or 8
+	m.selected_option = opts.selected_option or 1
+	m.options = opts.options or {}
+	m.on_back = opts.on_back -- optional callback
+	return m
+end
+
+function Menu:print_item(txt, is_selected, y_offset)
+	local width = print(txt, 0, -100)
+	local x = Screen.width // 2 - width // 2
+	local y = Screen.height // 2 + y_offset
+	if is_selected then
+		spr(368, x - 16, y - 2)
+	end
+	print(txt, x, y, 8, true)
+end
+
+function Menu:get_offset(i)
+	local center_index = (#self.options + 1) // 2
+	return (i - center_index) * self.options_padding
+end
+
+function Menu:draw()
+	for i, option in ipairs(self.options) do
+		self:print_item(option.key, i == self.selected_option, self:get_offset(i))
+	end
+end
+
+function Menu:up()
+	if self.selected_option > 1 then
+		self.selected_option = self.selected_option - 1
+	end
+end
+
+function Menu:down()
+	if self.selected_option < #self.options then
+		self.selected_option = self.selected_option + 1
+	end
+end
+
+function Menu:confirm()
+	local opt = self.options[self.selected_option]
+	if opt and opt.callback then
+		opt.callback()
+	end
+end
+
+function Menu:update()
+	if btnp(KEYMAP_P1.UP) then
+		self:up()
+	elseif btnp(KEYMAP_P1.DOWN) then
+		self:down()
+	end
+
+	if btnp(KEYMAP_P1.A) then
+		self:confirm()
+	end
+	if btnp(KEYMAP_P1.B) and self.on_back then
+		self.on_back()
+	end
+end
+
+local main_menu
+local controls_menu
+
+controls_menu = Menu:new({
+	options = {
+		{ key = "P1: ARROWS MOVE", callback = function() end },
+		{ key = "A ROTATE CW", callback = function() end },
+		{
+			key = "BACK",
+			callback = function()
+				Game.menu = main_menu
+			end,
+		},
+	},
+	on_back = function()
+		Game.menu = main_menu
+	end,
+})
+
+main_menu = Menu:new({
 	options = {
 		{
 			key = "VS GAME",
-			is_selected = true,
-			callback = function() end,
+			callback = function()
+				Game.scene = SCENES.GAME
+			end,
 		},
 		{
 			key = "CONTROLS",
-			is_selected = false,
-			callback = function() end,
+			callback = function()
+				Game.menu = controls_menu
+			end,
 		},
 	},
-}
+})
 
-function Menu.print(txt, is_selected, y_offset)
-	local width = print(txt, 0, -100)
-	if is_selected then
-		spr(368, Screen.width // 2 - width // 2 - 16, Screen.height // 2 + y_offset - 2)
-		print(txt, Screen.width // 2 - width // 2, Screen.height // 2 + y_offset, 8, true)
-	else
-		print(txt, Screen.width // 2 - width // 2, Screen.height // 2 + y_offset, 8, true)
-	end
-end
-
-function Menu.up()
-	if Menu.selected_option > 1 then
-		Menu.selected_option = Menu.selected_option - 1
-	end
-end
-
-function Menu.down()
-	if Menu.selected_option < #Menu.options then
-		Menu.selected_option = Menu.selected_option + 1
-	end
-end
-
-function Menu.print_options()
-	for i, option in ipairs(Menu.options) do
-		local offset = Menu.get_offset(i)
-		local is_selected = i == Menu.selected_option
-		Menu.print(option.key, is_selected, offset)
-	end
-end
-
-function Menu.get_offset(i)
-	local center_index = (#Menu.options + 1) // 2
-	return (i - center_index) * Menu.options_padding
-end
+Game.menu = main_menu
 
 function TIC()
 	-- Audio.playBGM(TRACK.FLORA)
@@ -1082,12 +1134,8 @@ function TIC()
 
 	if Game.scene == SCENES.MENU then
 		cls(0)
-		Menu.print_options()
-		if btnp(KEYMAP_P1.UP) then
-			Menu.up()
-		elseif btnp(KEYMAP_P1.DOWN) then
-			Menu.down()
-		end
+		Game.menu:update()
+		Game.menu:draw()
 		return
 	end
 
