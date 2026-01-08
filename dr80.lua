@@ -210,6 +210,13 @@ local KEYMAP_P4 = {
 	SUPER = 31,
 }
 
+local KEYS = {
+	KEYMAP_P1,
+	KEYMAP_P2,
+	KEYMAP_P3,
+	KEYMAP_P4,
+}
+
 -- Keymap end --
 
 -- Grid manager --
@@ -1022,7 +1029,6 @@ grid2:generate_character(1)
 
 num_players = 1
 
--- "Class"
 local Menu = {}
 Menu.__index = Menu
 
@@ -1031,7 +1037,7 @@ function Menu:new(opts)
 	m.options_padding = opts.options_padding or 8
 	m.selected_option = opts.selected_option or 1
 	m.options = opts.options or {}
-	m.on_back = opts.on_back -- optional callback
+	m.on_back = opts.on_back
 	return m
 end
 
@@ -1040,7 +1046,7 @@ function Menu:print_item(txt, is_selected, y_offset)
 	local x = Screen.width // 2 - width // 2
 	local y = Screen.height // 2 + y_offset
 	if is_selected then
-		spr(368, x - 16, y - 2)
+		spr(456, 80, y - 2)
 	end
 	print(txt, x, y, 8, true)
 end
@@ -1090,13 +1096,40 @@ function Menu:update()
 	end
 end
 
+function setup_player_keys(player_index)
+	print(KEYS[player_index])
+end
+
 local main_menu
 local controls_menu
+local player_keys_menu
 
 controls_menu = Menu:new({
 	options = {
-		{ key = "P1: ARROWS MOVE", callback = function() end },
-		{ key = "A ROTATE CW", callback = function() end },
+		{
+			key = "P1 keys",
+			callback = function()
+				setup_player_keys(1)
+			end,
+		},
+		{
+			key = "P2 keys",
+			callback = function()
+				setup_player_keys(2)
+			end,
+		},
+		{
+			key = "P3 keys",
+			callback = function()
+				setup_player_keys(3)
+			end,
+		},
+		{
+			key = "P4 keys",
+			callback = function()
+				setup_player_keys(4)
+			end,
+		},
 		{
 			key = "BACK",
 			callback = function()
@@ -1107,6 +1140,12 @@ controls_menu = Menu:new({
 	on_back = function()
 		Game.menu = main_menu
 	end,
+})
+
+player_keys_menu = Menu:new({
+	options = {
+		{ key = "LEFT", callback = function() end },
+	},
 })
 
 main_menu = Menu:new({
@@ -1433,4 +1472,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
