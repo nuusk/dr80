@@ -119,7 +119,8 @@ local TRACK = {
 
 local SCENES = {
 	MENU = 0,
-	GAME = 1,
+	PARAMS = 1,
+	GAME = 2,
 }
 
 local MODES = {
@@ -885,7 +886,7 @@ function Game.setup_game(players)
 		table.insert(Game.grids, grid)
 	end
 
-	Game.scene = SCENES.GAME
+	Game.scene = SCENES.PARAMS
 end
 
 function Game.update_grids()
@@ -897,6 +898,18 @@ end
 function Game.draw_grids()
 	for _, grid in pairs(Game.grids) do
 		grid:draw()
+	end
+end
+
+function Game.update_params()
+	for _, grid in pairs(Game.grids) do
+		grid:update_params()
+	end
+end
+
+function Game.draw_params()
+	for _, grid in pairs(Game.grids) do
+		grid:draw_params()
 	end
 end
 
@@ -1210,6 +1223,22 @@ function Grid:update()
 	end
 end
 
+function Grid:update_params()
+	local keys = KEYS[self.player]
+	if btnp(keys.UP) then
+		self:param_up()
+	end
+	if btnp(keys.DOWN) then
+		self:param_down()
+	end
+end
+
+function Grid:draw_params()
+	self:draw_border()
+	self:draw_character(t)
+	self:draw_stats()
+end
+
 function Grid:draw()
 	self:draw_border()
 	self:draw_board()
@@ -1225,20 +1254,21 @@ end
 function TIC()
 	-- Audio.playBGM(TRACK.FLORA)
 	Console.update()
+	cls(0)
 
 	if Game.scene == SCENES.MENU then
-		cls(0)
 		Game.menu:update()
 		Game.menu:draw()
-		return
+	elseif Game.scene == SCENES.PARAMS then
+		Game.update_params()
+		Game.draw_params()
+	elseif Game.scene == SCENES.GAME then
+		Game.update_grids()
+		Game.draw_grids()
 	end
 
-	cls(0)
-	Game.update_grids()
-	Game.draw_grids()
-
-	Console.draw()
 	t = t + 1
+	Console.draw()
 end
 
 -- <TILES>
