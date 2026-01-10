@@ -117,6 +117,22 @@ local TRACK = {
 
 -- Global variables end --
 
+local SCENES = {
+	MENU = 0,
+	GAME = 1,
+}
+
+local MODES = {
+	VS = 0,
+}
+
+local Game = {
+	scene = SCENES.MENU,
+	mode = MODES.VS,
+	grids = {},
+	players = 1,
+}
+
 -- Audio manager --
 
 local Audio = {
@@ -243,8 +259,6 @@ local Grid = {
 	player = 1,
 	px = 1,
 	py = 1,
-	h = 15, -- perfect for tic80 screen size
-	w = 4,
 	num_stones = 0,
 	next_binding = nil,
 	static_bindings = {},
@@ -262,10 +276,11 @@ function Grid:new(player)
 	local g = setmetatable({}, Grid)
 
 	g.player = player
-	g.px = (player - 1) * (Grid.w + 4) + 1
+	g.h = Game.assign_grid_height()
+	g.w = Game.assign_grid_width()
 	g.py = Grid.py
-	g.h = Grid.h
-	g.w = Grid.w
+	g.px = (player - 1) * (g.w + 4) + 1
+
 	g.interval = Grid.interval
 	g.stones = Grid.stones
 
@@ -280,7 +295,7 @@ function Grid:new(player)
 
 	g:generate_board()
 	g:generate_stones(1)
-	g:generate_character(player)
+	g:generate_character(1)
 
 	return g
 end
@@ -312,7 +327,10 @@ function Grid:effective_interval()
 	return self.interval
 end
 
-function Grid:generate_board()
+function Grid:generate_board(players)
+	if players == 2 then
+		self.w = 14
+	end
 	for y = 0, self.h - 1, 1 do
 		self.board[y] = {}
 		for x = 0, self.w - 1, 1 do
@@ -858,20 +876,46 @@ end
 
 -- Game manager --
 
-local SCENES = {
-	MENU = 0,
-	GAME = 1,
-}
+function Game.setup_game(players)
+	Game.players = players
 
-local MODES = {
-	VS = 0,
-}
+	for i = 1, players, 1 do
+		local grid = Grid:new(i)
+		table.insert(Game.grids, grid)
+	end
 
-local Game = {
-	scene = SCENES.MENU,
-	mode = MODES.VS,
-	players = 1,
-}
+	Game.scene = SCENES.GAME
+end
+
+function Game.update_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:update()
+	end
+end
+
+function Game.draw_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:draw()
+	end
+end
+
+function Game.assign_grid_height()
+	return 15
+end
+
+function Game.assign_grid_width()
+	if Game.players == 1 then
+		return 9
+	elseif Game.players == 2 then
+		return 9
+	elseif Game.players == 3 then
+		return 5
+	elseif Game.players == 4 then
+		return 4
+	else
+		Console.log("unexpected number of players during assign_grid_width")
+	end
+end
 
 function Grid:eval()
 	if self.drop_trigger == true then
@@ -1023,18 +1067,6 @@ end
 
 t = 0
 
-local grid1 = Grid:new(1)
-grid1:generate_board()
-grid1:generate_stones(1)
-grid1:generate_character(1)
-
-local grid2 = Grid:new(2)
-grid2:generate_board()
-grid2:generate_stones(1)
-grid2:generate_character(1)
-
-num_players = 1
-
 local Menu = {}
 Menu.__index = Menu
 
@@ -1114,22 +1146,19 @@ players_menu = Menu:new({
 		{
 			key = "2 PLAYERS",
 			callback = function()
-				Game.players = 2
-				Game.scene = SCENES.GAME
+				Game.setup_game(2)
 			end,
 		},
 		{
 			key = "3 PLAYERS",
 			callback = function()
-				Game.players = 3
-				Game.scene = SCENES.GAME
+				Game.setup_game(3)
 			end,
 		},
 		{
 			key = "4 PLAYERS",
 			callback = function()
-				Game.players = 4
-				Game.scene = SCENES.GAME
+				Game.setup_game(4)
 			end,
 		},
 		{
@@ -1182,7 +1211,6 @@ end
 
 function Grid:draw()
 	self:draw_border()
-	-- self:draw_border()
 	self:draw_board()
 	self:draw_static_bindings()
 	self:draw_active_binding()
@@ -1204,13 +1232,9 @@ function TIC()
 		return
 	end
 
-	grid1:update()
-	grid2:update()
-
 	cls(0)
-
-	grid1:draw()
-	grid2:draw()
+	Game.update_grids()
+	Game.draw_grids()
 
 	Console.draw()
 	t = t + 1
