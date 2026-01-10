@@ -256,9 +256,6 @@ local BACKGROUND = {
 
 local Grid = {
 	cell_size = 8,
-	player = 1,
-	px = 1,
-	py = 1,
 	num_stones = 0,
 	next_binding = nil,
 	static_bindings = {},
@@ -278,7 +275,7 @@ function Grid:new(player)
 	g.player = player
 	g.h = Game.assign_grid_height()
 	g.w = Game.assign_grid_width()
-	g.py = Grid.py
+	g.py = 1
 	g.px = (player - 1) * (g.w + 4) + 1
 
 	g.interval = Grid.interval
@@ -803,10 +800,14 @@ function Grid:print()
 	end
 end
 
+-- cx converts x position in the grid to x position on the screen
+-- px is a reference to grid origin offset (in cells, not pixels)
 function Grid:cx(x)
 	return (x + self.px) * self.cell_size
 end
 
+-- cy converts y position in the grid to y position on the screen
+-- py is a reference to grid origin offset (in cells, not pixels)
 function Grid:cy(y)
 	return (y + self.py) * self.cell_size
 end
@@ -907,7 +908,7 @@ function Game.assign_grid_width()
 	if Game.players == 1 then
 		return 9
 	elseif Game.players == 2 then
-		return 9
+		return 11
 	elseif Game.players == 3 then
 		return 5
 	elseif Game.players == 4 then
