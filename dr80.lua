@@ -244,7 +244,7 @@ local Grid = {
 	px = 1,
 	py = 1,
 	h = 15, -- perfect for tic80 screen size
-	w = 8,
+	w = 4,
 	num_stones = 0,
 	next_binding = nil,
 	static_bindings = {},
@@ -863,8 +863,14 @@ local SCENES = {
 	GAME = 1,
 }
 
+local MODES = {
+	VS = 0,
+}
+
 local Game = {
 	scene = SCENES.MENU,
+	mode = MODES.VS,
+	players = 1,
 }
 
 function Grid:eval()
@@ -1101,13 +1107,47 @@ function setup_player_keys(player_index)
 end
 
 local main_menu
+local players_menu
+
+players_menu = Menu:new({
+	options = {
+		{
+			key = "2 PLAYERS",
+			callback = function()
+				Game.players = 2
+				Game.scene = SCENES.GAME
+			end,
+		},
+		{
+			key = "3 PLAYERS",
+			callback = function()
+				Game.players = 3
+				Game.scene = SCENES.GAME
+			end,
+		},
+		{
+			key = "4 PLAYERS",
+			callback = function()
+				Game.players = 4
+				Game.scene = SCENES.GAME
+			end,
+		},
+		{
+			key = "BACK",
+			callback = function()
+				Game.menu = main_menu
+			end,
+		},
+	},
+})
 
 main_menu = Menu:new({
 	options = {
 		{
 			key = "VS GAME",
 			callback = function()
-				Game.scene = SCENES.GAME
+				Game.menu = players_menu
+				Game.mode = MODES.VS
 			end,
 		},
 	},
