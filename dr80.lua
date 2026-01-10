@@ -1101,52 +1101,6 @@ function setup_player_keys(player_index)
 end
 
 local main_menu
-local controls_menu
-local player_keys_menu
-
-controls_menu = Menu:new({
-	options = {
-		{
-			key = "P1 keys",
-			callback = function()
-				setup_player_keys(1)
-			end,
-		},
-		{
-			key = "P2 keys",
-			callback = function()
-				setup_player_keys(2)
-			end,
-		},
-		{
-			key = "P3 keys",
-			callback = function()
-				setup_player_keys(3)
-			end,
-		},
-		{
-			key = "P4 keys",
-			callback = function()
-				setup_player_keys(4)
-			end,
-		},
-		{
-			key = "BACK",
-			callback = function()
-				Game.menu = main_menu
-			end,
-		},
-	},
-	on_back = function()
-		Game.menu = main_menu
-	end,
-})
-
-player_keys_menu = Menu:new({
-	options = {
-		{ key = "LEFT", callback = function() end },
-	},
-})
 
 main_menu = Menu:new({
 	options = {
@@ -1156,16 +1110,48 @@ main_menu = Menu:new({
 				Game.scene = SCENES.GAME
 			end,
 		},
-		{
-			key = "CONTROLS",
-			callback = function()
-				Game.menu = controls_menu
-			end,
-		},
 	},
 })
 
 Game.menu = main_menu
+
+function Grid:update()
+	local keys = KEYS[self.player]
+	if btnp(keys.A) then
+		self:rotate_clockwise()
+	end
+	if btnp(keys.B) then
+		self:rotate_counterclockwise()
+	end
+	if btnp(keys.LEFT) then
+		self:move_left()
+	end
+	if btnp(keys.RIGHT) then
+		self:move_right()
+	end
+	if btnp(keys.PAUSE) then
+		-- implement pause
+	end
+
+	if t % self:effective_interval() == 0 then
+		if self.is_paused ~= true then
+			self:eval()
+		end
+	end
+end
+
+function Grid:draw()
+	self:draw_border()
+	-- self:draw_border()
+	self:draw_board()
+	self:draw_static_bindings()
+	self:draw_active_binding()
+	self:draw_halves()
+	self:draw_character(t)
+	self:draw_stats()
+	self:draw_next_binding()
+	self:draw_num_stones()
+end
 
 function TIC()
 	-- Audio.playBGM(TRACK.FLORA)
@@ -1178,56 +1164,13 @@ function TIC()
 		return
 	end
 
-	if btnp(KEYMAP_P1.A) then
-		grid1:rotate_clockwise()
-	end
-
-	if btnp(KEYMAP_P1.B) then
-		grid1:rotate_counterclockwise()
-	end
-
-	if btnp(KEYMAP_P1.LEFT) then
-		grid1:move_left()
-	end
-
-	if btnp(KEYMAP_P1.RIGHT) then
-		grid1:move_right()
-	end
-
-	if btnp(KEYMAP_P1.PAUSE) then
-		grid1.is_paused = not grid1.is_paused
-		if grid1.is_paused == true then
-			Console.clear()
-			grid1:print()
-		end
-	end
-
-	if t % grid1:effective_interval() == 0 then
-		if grid1.is_paused ~= true then
-			grid1:eval()
-		end
-	end
+	grid1:update()
+	grid2:update()
 
 	cls(0)
-	grid1:draw_border()
-	-- grid1:draw_border()
-	grid1:draw_board()
-	grid1:draw_static_bindings()
-	grid1:draw_active_binding()
-	grid1:draw_halves()
-	grid1:draw_character(t)
-	grid1:draw_stats()
-	grid1:draw_next_binding()
-	grid1:draw_num_stones()
 
-	grid2:draw_border()
-	grid2:draw_board()
-	grid2:draw_static_bindings()
-	grid2:draw_active_binding()
-	grid2:draw_halves()
-	grid2:draw_character(t)
-	grid2:draw_stats()
-	grid2:draw_next_binding()
+	grid1:draw()
+	grid2:draw()
 
 	Console.draw()
 	t = t + 1
