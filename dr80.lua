@@ -351,6 +351,12 @@ function Grid:generate_character(index)
 	end
 end
 
+function Grid:draw_text()
+	local cx = self:cx(self.w // 2)
+	local cy = self:cy(self.h // 2)
+	print("needs to be centered", cx, cy, 8, true)
+end
+
 function Grid:draw_stats()
 	local cx = self:cx(self.w + 1)
 	local cy = self:cy(self.h - 1)
@@ -1237,6 +1243,7 @@ function Grid:draw_params()
 	self:draw_border()
 	self:draw_character(t)
 	self:draw_stats()
+	self:draw_text()
 end
 
 function Grid:draw()
