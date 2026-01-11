@@ -257,6 +257,7 @@ local BACKGROUND = {
 
 local Grid = {
 	cell_size = 8,
+	level = 9,
 	num_stones = 0,
 	next_binding = nil,
 	static_bindings = {},
@@ -352,9 +353,8 @@ function Grid:generate_character(index)
 end
 
 function Grid:draw_text()
-	local cx = self:cx(self.w // 2)
-	local cy = self:cy(self.h // 2)
-	print("needs to be centered", cx, cy, 8, true)
+	print("LEVEL", self:cx(1), self:cy(1), 8, true)
+	print(self.level, self:cx(self.w - 2) + 4, self:cy(1), 8, true)
 end
 
 function Grid:draw_stats()
@@ -1229,6 +1229,30 @@ function Grid:update()
 	end
 end
 
+-- btnp repeat helper
+local REPEAT_DELAY = 20
+local REPEAT_RATE = 6
+local hold = {}
+
+function btnp_repeat(b)
+	if btnp(b) then
+		hold[b] = 0
+		return true
+	end
+
+	if btn(b) then
+		hold[b] = (hold[b] or 0) + 1
+
+		if hold[b] > REPEAT_DELAY and (hold[b] - REPEAT_DELAY) % REPEAT_RATE == 0 then
+			return true
+		end
+	else
+		hold[b] = nil
+	end
+
+	return false
+end
+
 function Grid:update_params()
 	local keys = KEYS[self.player]
 	if btnp(keys.UP) then
@@ -1236,6 +1260,16 @@ function Grid:update_params()
 	end
 	if btnp(keys.DOWN) then
 		self:param_down()
+	end
+	if btnp_repeat(keys.LEFT) then
+		if self.level > 1 then
+			self.level = self.level - 1
+		end
+	end
+	if btnp_repeat(keys.RIGHT) then
+		if self.level < 9 then
+			self.level = self.level + 1
+		end
 	end
 end
 
