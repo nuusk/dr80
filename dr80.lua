@@ -277,8 +277,24 @@ function Grid:new(player)
 	g.player = player
 	g.h = Game.assign_grid_height()
 	g.w = Game.assign_grid_width()
-	g.py = 1
-	g.px = (player - 1) * (g.w + 4) + 1
+	g.py = Game.assign_py()
+	if Game.players <= 2 then
+		g.px = (player - 1) * (g.w + 4) + 1
+		g.next_binding_x = g.w + 1
+		g.next_binding_y = 0
+		g.character_x = g.w + 1
+		g.character_y = g.h - 4
+		g.score_x = g.w + 1
+		g.score_y = g.h
+	else
+		g.px = (player - 1) * (g.w + 1) + 1
+		g.next_binding_x = g.w - 3
+		g.next_binding_y = -3
+		g.character_x = g.w - 1
+		g.character_y = -4
+		g.score_x = 0
+		g.score_y = -2
+	end
 
 	g.interval = Grid.interval
 	g.stones = Grid.stones
@@ -326,10 +342,7 @@ function Grid:effective_interval()
 	return self.interval
 end
 
-function Grid:generate_board(players)
-	if players == 2 then
-		self.w = 14
-	end
+function Grid:generate_board()
 	for y = 0, self.h - 1, 1 do
 		self.board[y] = {}
 		for x = 0, self.w - 1, 1 do
@@ -352,16 +365,24 @@ function Grid:generate_character(index)
 	end
 end
 
-function Grid:draw_text()
+function Grid:draw_level()
 	print("LEVEL", self:cx(1), self:cy(1), 8, true)
 	print(self.level, self:cx(self.w - 2) + 4, self:cy(1), 8, true)
+
+	rectb(self:cx(1), self:cy(2), 8, 8, 1)
 end
 
-function Grid:draw_stats()
-	local cx = self:cx(self.w + 1)
-	local cy = self:cy(self.h - 1)
+function Grid:draw_score()
+	local cx = self:cx(self.score_x)
+	local cy = self:cy(self.score_y - 1)
 
 	spr(BACKGROUND.SQUARE_2x2, cx, cy, 0, 1, 0, 0, 2, 2)
+
+	local offset = 5
+	if self.num_stones >= 10 then
+		offset = 2
+	end
+	print(self.num_stones, self:cx(self.score_x) + offset, self:cy(self.score_y) - (Grid.cell_size // 4), 8, true)
 end
 
 function Grid:draw_character(t)
@@ -371,8 +392,8 @@ function Grid:draw_character(t)
 		return
 	end
 
-	local cx = self:cx(self.w + 1)
-	local cy = self:cy(self.h - 4)
+	local cx = self:cx(self.character_x)
+	local cy = self:cy(self.character_y)
 
 	local i = (t // 8) % #char.anim_idle.sprites + 1
 	local frame = char.anim_idle.sprites[i]
@@ -464,22 +485,14 @@ function Grid:draw_board()
 	end
 end
 
-function Grid:draw_num_stones()
-	local offset = 5
-	if self.num_stones >= 10 then
-		offset = 2
-	end
-	print(self.num_stones, self:cx(self.w + 1) + offset, self:cy(self.h - 6) - (Grid.cell_size // 4), 8, true)
-end
-
 function Grid:gen_next_binding()
 	local binding = Runes.gen_binding_rune()
 
 	self.next_binding = {
 		rune1 = binding.rune1,
 		rune2 = binding.rune2,
-		x = self.w + 1,
-		y = 0,
+		x = self.next_binding_x,
+		y = self.next_binding_y,
 		rotation = 0,
 	}
 end
@@ -837,12 +850,11 @@ function Grid:draw_border()
 		end
 	end
 
-	-- above next pill
-	spr(BACKGROUND.SINGLE, self:cx(self.w + 1), self:cy(-1))
-	spr(BACKGROUND.SINGLE, self:cx(self.w + 2), self:cy(-1))
-
-	spr(BACKGROUND.SINGLE, self:cx(self.w + 1), self:cy(1))
-	spr(BACKGROUND.SINGLE, self:cx(self.w + 2), self:cy(1))
+	-- around next pill
+	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y + 1))
+	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y + 1))
+	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y - 1))
+	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y - 1))
 end
 
 function Grid:draw_border_deprecated()
@@ -892,7 +904,7 @@ function Game.setup_game(players)
 		table.insert(Game.grids, grid)
 	end
 
-	Game.scene = SCENES.PARAMS
+	Game.scene = SCENES.GAME
 end
 
 function Game.update_grids()
@@ -920,7 +932,19 @@ function Game.draw_params()
 end
 
 function Game.assign_grid_height()
-	return 15
+	-- when there are more than 2 players, grid is smaller and character is drawn on top
+	if Game.players <= 2 then
+		return 15
+	end
+	return 12
+end
+
+function Game.assign_py()
+	-- when there are more than 2 players, grid is smaller and character is drawn on top
+	if Game.players <= 2 then
+		return 1
+	end
+	return 4
 end
 
 function Game.assign_grid_width()
@@ -929,9 +953,9 @@ function Game.assign_grid_width()
 	elseif Game.players == 2 then
 		return 11
 	elseif Game.players == 3 then
-		return 5
+		return 8
 	elseif Game.players == 4 then
-		return 4
+		return 6
 	else
 		Console.log("unexpected number of players during assign_grid_width")
 	end
@@ -1276,8 +1300,8 @@ end
 function Grid:draw_params()
 	self:draw_border()
 	self:draw_character(t)
-	self:draw_stats()
-	self:draw_text()
+	self:draw_score()
+	self:draw_level()
 end
 
 function Grid:draw()
@@ -1287,9 +1311,8 @@ function Grid:draw()
 	self:draw_active_binding()
 	self:draw_halves()
 	self:draw_character(t)
-	self:draw_stats()
+	self:draw_score()
 	self:draw_next_binding()
-	self:draw_num_stones()
 end
 
 function TIC()
