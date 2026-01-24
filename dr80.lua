@@ -268,6 +268,7 @@ local Grid = {
 	interval = 60,
 	is_paused = false,
 	character = nil,
+	combo = 0,
 }
 Grid.__index = Grid
 
@@ -309,7 +310,7 @@ function Grid:new(player)
 	g.next_binding = nil
 
 	g:generate_board()
-	g:generate_stones(1)
+	g:generate_stones(5)
 	g:generate_character(1)
 
 	return g
@@ -319,6 +320,12 @@ local STONES = {
 	{ name = "R", spr = 256 },
 	{ name = "S", spr = 272 },
 	{ name = "E", spr = 288 },
+}
+
+local STONES_SPR = {
+	R = 256,
+	S = 272,
+	E = 288,
 }
 
 local HALVES_SPR = {
@@ -430,34 +437,24 @@ function Grid:generate_stones(level)
 		end
 	end
 
-	local rand_num = math.random(#bag)
-	local rand_pos = bag[rand_num]
-	table.remove(bag, rand_num)
-	self.board[rand_pos.y][rand_pos.x] = {
-		type = "stone",
-		spr = 256,
-		color = "R",
-	}
+	for i = 1, preset.n, 1 do
+		local rand_num = math.random(#bag)
+		local rand_pos = bag[rand_num]
+		local color = "R"
+		if i % 3 == 0 then
+			color = "S"
+		elseif i % 3 == 1 then
+			color = "E"
+		end
+		table.remove(bag, rand_num)
+		self.board[rand_pos.y][rand_pos.x] = {
+			type = "stone",
+			spr = STONES_SPR[color],
+			color = color,
+		}
+	end
 
-	rand_num = math.random(#bag)
-	rand_pos = bag[rand_num]
-	table.remove(bag, rand_num)
-	self.board[rand_pos.y][rand_pos.x] = {
-		type = "stone",
-		spr = 272,
-		color = "S",
-	}
-
-	rand_num = math.random(#bag)
-	rand_pos = bag[rand_num]
-	table.remove(bag, rand_num)
-	self.board[rand_pos.y][rand_pos.x] = {
-		type = "stone",
-		spr = 288,
-		color = "E",
-	}
-
-	self.num_stones = 3
+	self.num_stones = preset.n
 end
 
 function Grid:count_stones()
@@ -471,6 +468,11 @@ function Grid:count_stones()
 	end
 
 	self.num_stones = count
+end
+
+function Grid:increment_combo()
+	self.combo = self.combo + 1
+	Audio.play(SFX.CLEAR)
 end
 
 function Grid:draw_board()
@@ -709,7 +711,7 @@ function Grid:grav_halves()
 						self.board[y][x] = nil
 						still_falling = true
 					else
-						Audio.play(SFX.DROP)
+						-- Audio.play(SFX.DROP)
 						self.board[y][x] = {
 							type = "half",
 							color = half.color,
@@ -741,7 +743,7 @@ function Grid:grav_halves()
 						already_moved[oh_pos.y][oh_pos.x] = true
 						still_falling = true
 					else
-						Audio.play(SFX.DROP)
+						-- Audio.play(SFX.DROP)
 					end
 				end
 			end
@@ -764,7 +766,7 @@ function Grid:grav()
 	if self:available(x1, y1 + 1) and self:available(x2, y2 + 1) then
 		active.y = active.y + 1
 	else
-		Audio.play(SFX.DROP)
+		-- Audio.play(SFX.DROP)
 		self:mark_active_binding_as_static()
 	end
 end
@@ -1104,6 +1106,7 @@ function Grid:remove_marked()
 
 	if self.drop_trigger == true then
 		self:count_stones()
+		self:increment_combo()
 	end
 end
 
