@@ -142,6 +142,10 @@ local Audio = {
 		sfx = 3,
 		bgm = { 0, 1, 2 },
 	},
+	chords = {
+		happy = { "C-4", "D-4", "E-4", "G-4" },
+		arcade = { "E-3", "G-3", "A-3", "C-4" },
+	},
 }
 
 function Audio.playBGM(track, loop)
@@ -157,8 +161,13 @@ function Audio.stopBGM()
 	Audio.bgm = nil
 end
 
-function Audio.play(id, vol, spd)
-	sfx(id, nil, -1, Audio.reserved.sfx, vol or 15, spd or 0, false)
+function Audio.play(id, speed, note)
+	sfx(id, note, -1, Audio.reserved.sfx, 15, speed or 0, false)
+end
+
+function Audio.generate_note(combo, character)
+	-- change chord based on character
+	return Audio.chords.happy[math.min(combo, 4)]
 end
 
 -- Audio manager end --
@@ -361,6 +370,7 @@ end
 function Grid:generate_character(index)
 	if index == 1 then
 		self.character = {
+			name = "ruby",
 			state = "idle",
 			anim_idle = {
 				sprites = CHAR_1_ANIMATION_IDLE,
@@ -472,7 +482,8 @@ end
 
 function Grid:increment_combo()
 	self.combo = self.combo + 1
-	Audio.play(SFX.CLEAR)
+	local note = Audio.generate_note(self.combo, self.character.name)
+	Audio.play(SFX.CLEAR, -2, note)
 end
 
 function Grid:draw_board()
@@ -967,21 +978,26 @@ function Grid:eval()
 	if self.drop_trigger == true then
 		local next_drop_trigger = self:grav_halves()
 		self.drop_trigger = next_drop_trigger
-		return
+
+		if next_drop_trigger == true then
+			return
+		end
 	end
 
 	if self.next_binding == nil then
 		self:gen_next_binding()
 	end
+
 	if self.active_binding == nil then
 		self:spawn_binding(self.next_binding)
 		self.next_binding = nil
 	else
 		self:grav()
-		self:count_x_rle()
-		self:count_y_rle()
-		self:remove_marked()
 	end
+
+	self:count_x_rle()
+	self:count_y_rle()
+	self:remove_marked()
 end
 
 function Grid:mark_to_remove_on_y(y, from, to)
