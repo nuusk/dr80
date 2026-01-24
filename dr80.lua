@@ -851,10 +851,10 @@ function Grid:draw_border()
 	end
 
 	-- around next pill
-	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y + 1))
-	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y + 1))
-	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y - 1))
-	spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y - 1))
+	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y + 1))
+	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y + 1))
+	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y - 1))
+	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y - 1))
 end
 
 function Grid:draw_border_deprecated()
