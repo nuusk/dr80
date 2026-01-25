@@ -1,4 +1,4 @@
--- title:   game title
+:-- title:   game title
 -- author:  game developer, email, etc.
 -- desc:    short description
 -- site:    website link
@@ -167,7 +167,7 @@ end
 
 function Audio.generate_note(combo, character)
 	-- change chord based on character
-	return Audio.chords.happy[math.min(combo, 4)]
+	return Audio.chords.arcade[math.min(combo, 4)]
 end
 
 -- Audio manager end --
@@ -480,10 +480,18 @@ function Grid:count_stones()
 	self.num_stones = count
 end
 
-function Grid:increment_combo()
-	self.combo = self.combo + 1
+function Grid:increment_combo(inc)
+	if inc == nil then
+		self.combo = self.combo + 1
+	else
+		self.combo = self.combo + inc
+	end
 	local note = Audio.generate_note(self.combo, self.character.name)
 	Audio.play(SFX.CLEAR, -2, note)
+end
+
+function Grid:reset_combo()
+	-- self.combo = 0
 end
 
 function Grid:draw_board()
@@ -976,12 +984,22 @@ end
 
 function Grid:eval()
 	if self.drop_trigger == true then
-		local next_drop_trigger = self:grav_halves()
-		self.drop_trigger = next_drop_trigger
+		local halves_still_falling = self:grav_halves()
+		self.drop_trigger = halves_still_falling
 
-		if next_drop_trigger == true then
+		if halves_still_falling == true then
 			return
 		end
+	end
+
+	self:count_x_rle()
+	self:count_y_rle()
+	local to_remove = self:remove_marked()
+	if to_remove > 0 then
+		self:increment_combo(to_remove)
+		return
+	else
+		self:reset_combo()
 	end
 
 	if self.next_binding == nil then
@@ -989,15 +1007,12 @@ function Grid:eval()
 	end
 
 	if self.active_binding == nil then
+		self:reset_combo()
 		self:spawn_binding(self.next_binding)
 		self.next_binding = nil
 	else
 		self:grav()
 	end
-
-	self:count_x_rle()
-	self:count_y_rle()
-	self:remove_marked()
 end
 
 function Grid:mark_to_remove_on_y(y, from, to)
@@ -1083,6 +1098,7 @@ function Grid:remove_marked()
 
 	local to_remove_diff = {}
 	local to_convert_diff = {}
+	local oh_boy_we_gotta_remove_something = 0
 
 	for y = self.h - 1, 0, -1 do
 		for x = self.w - 1, 0, -1 do
@@ -1098,7 +1114,7 @@ function Grid:remove_marked()
 
 				table.insert(to_remove_diff, { x = x, y = y })
 
-				self.drop_trigger = true
+				oh_boy_we_gotta_remove_something = oh_boy_we_gotta_remove_something + 1
 			end
 
 			::continue::
@@ -1120,10 +1136,12 @@ function Grid:remove_marked()
 		spr(BORDER.CENTER, cx, cy, 0)
 	end
 
-	if self.drop_trigger == true then
+	if oh_boy_we_gotta_remove_something > 0 then
+		self.drop_trigger = true
 		self:count_stones()
-		self:increment_combo()
 	end
+
+	return oh_boy_we_gotta_remove_something
 end
 
 -- Game manager end --
@@ -1593,3 +1611,4 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
