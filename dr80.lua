@@ -353,13 +353,6 @@ local CHAR_1_ANIMATION_IDLE = {
 	408,
 }
 
-function Grid:effective_interval()
-	if btn(KEYMAP_P1.DOWN) then
-		return self.interval / 10
-	end
-	return self.interval
-end
-
 function Grid:generate_board()
 	for y = 0, self.h - 1, 1 do
 		self.board[y] = {}
@@ -556,7 +549,6 @@ end
 
 function Grid:rotate_clockwise()
 	if self.active_binding == nil then
-		Console.log("error rotating binding - no active binding in game")
 		return
 	end
 
@@ -571,7 +563,6 @@ end
 
 function Grid:rotate_counterclockwise()
 	if self.active_binding == nil then
-		Console.log("error rotating binding - no active binding in game")
 		return
 	end
 
@@ -586,7 +577,6 @@ end
 
 function Grid:move_left()
 	if self.active_binding == nil then
-		Console.log("error moving binding left - no active binding in game")
 		return
 	end
 
@@ -600,7 +590,6 @@ end
 
 function Grid:move_right()
 	if self.active_binding == nil then
-		Console.log("error moving binding right - no active binding in game")
 		return
 	end
 
@@ -609,6 +598,15 @@ function Grid:move_right()
 		self.active_binding.x = self.active_binding.x + 1
 	else
 		Audio.play(SFX.INVALID)
+	end
+end
+
+function Grid:drop_binding()
+	if self.active_binding == nil then
+		return
+	end
+
+	while self:grav() do
 	end
 end
 
@@ -774,6 +772,11 @@ function Grid:grav_halves()
 	return still_falling
 end
 
+-- grav checks whether active binding can go one position down.
+-- if it can, it moves to y+1 from the current position.
+-- it it cannot, it doesn't move, and it's marked as static (it's no longer active binding).
+-- the function returns true if the movement was possible (and the active binding remains active).
+-- the function returns false if the movement was not possible and the binding became static.
 function Grid:grav()
 	local active = self.active_binding
 	if active == nil then
@@ -784,9 +787,11 @@ function Grid:grav()
 
 	if self:available(x1, y1 + 1) and self:available(x2, y2 + 1) then
 		active.y = active.y + 1
+		return true
 	else
 		-- Audio.play(SFX.DROP)
 		self:mark_active_binding_as_static()
+		return false
 	end
 end
 
@@ -1285,6 +1290,10 @@ function Grid:update()
 	local effective_interval = self.interval
 	if btn(keys.DOWN) then
 		effective_interval = self.interval / 10
+	end
+
+	if btnp(keys.UP) then
+		self:drop_binding()
 	end
 
 	if t % effective_interval == 0 then
