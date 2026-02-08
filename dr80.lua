@@ -1,4 +1,4 @@
-:-- title:   game title
+-- title:   game title
 -- author:  game developer, email, etc.
 -- desc:    short description
 -- site:    website link
@@ -90,7 +90,7 @@ function Console.draw()
 	local x, y = 100, 0
 	rect(x, y, w, h, 0)
 	rectb(x, y, w, h, 13)
-	local visible = 20
+	local visible = 14
 	local start = math.max(1, #Console.lines - visible - Console.scroll + 1)
 	local idx = 0
 	for i = start, math.min(#Console.lines, start + visible - 1) do
@@ -167,7 +167,9 @@ end
 
 function Audio.generate_note(combo, character)
 	-- change chord based on character
-	return Audio.chords.arcade[math.min(combo, 4)]
+	local x = Audio.chords.arcade[math.min(combo, 4)]
+	Console.log("combo: " .. combo .. " ,chord: " .. x)
+	return x
 end
 
 -- Audio manager end --
@@ -480,18 +482,21 @@ function Grid:count_stones()
 	self.num_stones = count
 end
 
-function Grid:increment_combo(inc)
-	if inc == nil then
-		self.combo = self.combo + 1
-	else
-		self.combo = self.combo + inc
-	end
+function Grid:increment_combo()
+	Console.log("inc")
+	self.combo = self.combo + 1
 	local note = Audio.generate_note(self.combo, self.character.name)
+	if self.player == 1 then
+		Console.log("combo: " .. self.combo .. ", note: " .. note)
+	end
 	Audio.play(SFX.CLEAR, -2, note)
 end
 
 function Grid:reset_combo()
-	-- self.combo = 0
+	if self.player == 1 then
+		Console.log(self.player .. " combo reset")
+	end
+	self.combo = 0
 end
 
 function Grid:draw_board()
@@ -674,9 +679,6 @@ function Grid:draw_static_bindings()
 
 		local x1, y1, x2, y2 = self:get_binding_xy(binding)
 		local spr1, spr2 = self:get_binding_spr(binding)
-
-		Console.log(x1)
-
 		spr(spr1, x1 * self.cell_size, y1 * self.cell_size, 0)
 		spr(spr2, x2 * self.cell_size, y2 * self.cell_size, 0)
 	end
@@ -717,8 +719,6 @@ function Grid:grav_halves()
 			end
 
 			if self.board[y] ~= nil and self.board[y][x] ~= nil then
-				Console.log(string.format("x: %d, y: %d, type: %s", x, y, self.board[y][x].type))
-
 				if self.board[y][x].type == "half" then
 					local half = self.board[y][x]
 					if self:available(x, y + 1) then
@@ -834,8 +834,6 @@ function Grid:print()
 				if oh then
 					format = string.format("[%d][%d]:(%s)%s {oh y:%d,x:%d}", y, x, color, type, oh.y, oh.x)
 				end
-
-				Console.log(format)
 			end
 		end
 	end
@@ -996,10 +994,11 @@ function Grid:eval()
 	self:count_y_rle()
 	local to_remove = self:remove_marked()
 	if to_remove > 0 then
-		self:increment_combo(to_remove)
+		if self.player == 1 then
+			Console.log("to_remove: " .. to_remove .. ", increment combo")
+		end
+		self:increment_combo()
 		return
-	else
-		self:reset_combo()
 	end
 
 	if self.next_binding == nil then
@@ -1611,4 +1610,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
