@@ -1282,7 +1282,12 @@ function Grid:update()
 		-- implement pause
 	end
 
-	if t % self:effective_interval() == 0 then
+	local effective_interval = self.interval
+	if btn(keys.DOWN) then
+		effective_interval = self.interval / 10
+	end
+
+	if t % effective_interval == 0 then
 		if self.is_paused ~= true then
 			self:eval()
 		end
