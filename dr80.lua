@@ -1488,6 +1488,7 @@ end
 -- 167:cc000000aacc0000aaccc000aaac0c00aaac00c0aaaac080aaaac000aaaac000
 -- 168:0000000000000ccc008ccc0c000000ca00000caa0000ccaa0000ca9a0000c9a9
 -- 169:cc000000aacc0000aacccc00aaac00c0aaac0080aaaac000aaaac000aaaac000
+-- 175:0eeeeee0ee0000eee000d00ee0000d0ee000000ee000000eee0000ee0eeeeee0
 -- 176:00000ccc000000cc000000cc000000cc0000000c0000000c0000cc0c0000cccc
 -- 177:ccccc0000ccc00000cc000000cc000000c0000000c0000000ccc00000ccc0000
 -- 178:00000ccc000000cc000000cc000000cc0000000c0000000c0000cc0c0000cccc
@@ -1498,6 +1499,9 @@ end
 -- 183:ccccc0000ccc00000cc000000cc000000c0000000c0000000ccc00000ccc0000
 -- 184:00000ccc000000cc000000cc000000cc0000000c0000000c0000cc0c0000cccc
 -- 185:ccccc0000ccc00000cc000000cc000000c0000000c0000000ccc00000ccc0000
+-- 189:0eeeeeeeee000000e0000ddde0000000e0d00000e00d0000ee0000000eeeeeee
+-- 190:eeeeeee0000000eed000d00e00000d0e0000000e0000000e000000eeeeeeeee0
+-- 191:0dddddd0dd0000ddd000d00dd0000d0dd000000dd000000ddd0000dd0dddddd0
 -- 192:0cccccccccffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 193:ccccccc0ffffffccffffdffcfffffdfcfffffffcfffffffcfffffffcfffffffc
 -- 194:0cccccccccffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
@@ -1507,6 +1511,9 @@ end
 -- 198:0cccccccccffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 199:ccccccc0ffffffccffffeffcfffffefcfffffffcfffffffcfffffffcfffffffc
 -- 200:0000000060000000656000006656600066666660666660006660000060000000
+-- 205:0ddddddddd000000d0000dddd0000000d0d00000d00d0000dd0000000ddddddd
+-- 206:ddddddd0000000ddd000d00d00000d0d0000000d0000000d000000ddddddddd0
+-- 207:08888880880000888000d00880000d088000000880000d0880000d0880000d08
 -- 208:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 209:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffc
 -- 210:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
@@ -1515,6 +1522,9 @@ end
 -- 213:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcffffffccccccccc0
 -- 214:cfffffffcfffffffcfffffffcfffffffcfcfffffcffcffffccffffff0ccccccc
 -- 215:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcffffffccccccccc0
+-- 221:088888888800000080000ddd8000000080d00000800d00008800000008888888
+-- 222:8888888000000088d000d00800000d0800000008000000080000008888888880
+-- 223:80000d0880000008800000088000000880d00008800d00088800008808888880
 -- 224:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
 -- 225:fffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffc
 -- 226:cfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffffcfffffff
@@ -1626,3 +1636,4 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
