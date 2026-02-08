@@ -1288,8 +1288,10 @@ function Grid:update()
 	end
 
 	local effective_interval = self.interval
-	if btn(keys.DOWN) then
+	if btn(keys.DOWN) and self.active_binding ~= nil then
 		effective_interval = self.interval / 10
+	elseif self.active_binding == nil then
+		effective_interval = self.interval / 5
 	end
 
 	if btnp(keys.UP) then
