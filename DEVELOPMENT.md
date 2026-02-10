@@ -6,12 +6,13 @@ Guidelines for working on this project.
 
 In game sounds:
 
-00 - drop sound (when pill touches the ground)
+00 - land sound (when pill touches the ground)
 01 - move sound (when you move the pill left or right)
 02 - rotate sound (when you rotate the pill clockwise or counterclockwise)
 03 - clear sound (when you line up 4 colors in a row / column)
 04 - overflow sound (when you don't have more space for a new pill)
 05 - invalid move sound (you either rotate a pill or move a pill in such a way that validates the grid)
+06 - drop move sound (when you press up and the binding drops to the ground)
 
 Menu sounds:
 

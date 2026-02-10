@@ -102,12 +102,13 @@ end
 -- Global variables --
 
 local SFX = {
-	DROP = 0,
+	LAND = 0,
 	MOVE = 1,
 	ROTATE = 2,
 	CLEAR = 3,
 	OVERFLOW = 4,
 	INVALID = 5,
+	DROP = 6,
 }
 
 local TRACK = {
@@ -728,7 +729,7 @@ function Grid:grav_halves()
 						self.board[y][x] = nil
 						still_falling = true
 					else
-						-- Audio.play(SFX.DROP)
+						-- Audio.play(SFX.LAND)
 						self.board[y][x] = {
 							type = "half",
 							color = half.color,
@@ -760,7 +761,7 @@ function Grid:grav_halves()
 						already_moved[oh_pos.y][oh_pos.x] = true
 						still_falling = true
 					else
-						-- Audio.play(SFX.DROP)
+						-- Audio.play(SFX.LAND)
 					end
 				end
 			end
@@ -789,7 +790,7 @@ function Grid:grav()
 		active.y = active.y + 1
 		return true
 	else
-		-- Audio.play(SFX.DROP)
+		-- Audio.play(SFX.LAND)
 		self:mark_active_binding_as_static()
 		return false
 	end
@@ -986,9 +987,9 @@ function Game.assign_grid_width()
 end
 
 function Grid:eval()
-	if self.drop_trigger == true then
+	if self.cascade_trigger == true then
 		local halves_still_falling = self:grav_halves()
-		self.drop_trigger = halves_still_falling
+		self.cascade_trigger = halves_still_falling
 
 		if halves_still_falling == true then
 			return
@@ -1141,7 +1142,7 @@ function Grid:remove_marked()
 	end
 
 	if oh_boy_we_gotta_remove_something > 0 then
-		self.drop_trigger = true
+		self.cascade_trigger = true
 		self:count_stones()
 	end
 
@@ -1577,10 +1578,11 @@ end
 -- </MAP>
 
 -- <WAVES>
--- 000:fffffffffffffffffff0000000000000
+-- 000:00111111111111110000000000000000
 -- 001:0123456789abcdeffedcba9876543210
 -- 002:13445666655554444333333222222223
 -- 004:79bcdeefffeedcb97532110001123576
+-- 005:ffffffffffffffffffffffffffffffff
 -- 009:00000000000000000000006600000000
 -- </WAVES>
 
@@ -1591,6 +1593,7 @@ end
 -- 003:0100117021003190410051b0710091d0a100c1f0d100e100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100470000000000
 -- 004:01f011c0112011a02130319031404170515051a061607170814091309110a120b100b150b100c100c180c130c120d130d120d110e110f100f100f100240000000000
 -- 005:14e01430343064307440848094e0b450c4d0d430e440e400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400300000000000
+-- 006:f10071b481b391a49162f1015100710f910da10ba10ab10ad10af10af100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100200000000000
 -- 032:100010001000200030003000500070008000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000300000000000
 -- 033:220022002200220022002200220022002200220022002200220022002200220022002200220022002200220022002200220022002200220022002200670000000000
 -- 034:e100810061005100410041005100610081009100b100c100e100e100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100300000000000
