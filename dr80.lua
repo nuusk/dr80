@@ -135,6 +135,14 @@ local Game = {
 	players = 1,
 }
 
+-- Animation manager --
+
+local Animation = {}
+
+function Animation.play() end
+
+--
+
 -- Audio manager --
 
 local Audio = {
@@ -334,6 +342,22 @@ local STONES = {
 	{ name = "E", spr = 288 },
 }
 
+local ANIMATION_DROP_TRAIL_HORIZONTAL = { -- w:2, h:1
+	398,
+	382,
+	366,
+	350,
+	334,
+}
+
+local ANIMATION_DROP_TRAIL_VERTICAL = { -- w:1, h:1
+	396,
+	380,
+	397,
+	381,
+	365,
+}
+
 local STONES_SPR = {
 	R = 256,
 	S = 272,
@@ -391,7 +415,7 @@ function Grid:draw_score()
 
 	spr(BACKGROUND.SQUARE_2x2, cx, cy, 0, 1, 0, 0, 2, 2)
 
-	local offset = 5
+	localmovement offset = 5
 	if self.num_stones >= 10 then
 		offset = 2
 	end
@@ -413,6 +437,12 @@ function Grid:draw_character(t)
 	if char.state == "idle" then
 		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
 	end
+end
+
+function Grid:animate()
+  -- check what positions need to be animated
+  -- check sprites
+  -- check timing (how many frames)
 end
 
 function Grid:generate_stones(level)
@@ -609,7 +639,13 @@ function Grid:drop_binding()
 
 	Audio.play(SFX.DROP)
 
-	while self:grav() do
+	-- mark tiles that need to be animated (drop trail)
+	-- current position
+	local start_x1, start_y1, start_x2, start_y2 = self:get_binding_xy()
+
+	local grav_possible, end_x1, end_y1, end_x2, end_y2 = self:grav()
+	while grav_possible do
+		grav_possible, end_x1, end_y1, end_x2, end_y2 = self:grav()
 	end
 end
 
@@ -634,6 +670,8 @@ function Grid:available(x, y)
 	return false
 end
 
+-- get_binding_xy checks the binding rotation and returns x,y position for both sides of the pill.
+-- returns x1, y1, x2, y2
 function Grid:get_binding_xy(binding, rotation)
 	binding = binding or self.active_binding
 	rotation = rotation or binding.rotation
@@ -780,6 +818,7 @@ end
 -- it it cannot, it doesn't move, and it's marked as static (it's no longer active binding).
 -- the function returns true if the movement was possible (and the active binding remains active).
 -- the function returns false if the movement was not possible and the binding became static.
+-- also returns the position where the pill landed, assuming it has landed (the movement was not possible)
 function Grid:grav()
 	local active = self.active_binding
 	if active == nil then
@@ -794,7 +833,7 @@ function Grid:grav()
 	else
 		-- Audio.play(SFX.LAND)
 		self:mark_active_binding_as_static()
-		return false
+		return false, x1, y1, x2, y2
 	end
 end
 
@@ -1670,4 +1709,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
