@@ -155,7 +155,7 @@ function Animation:new(name, options)
 	}
 
 	if name == ANIMATIONS.DROP_TRAIL then
-		animation.num_frames = 20
+		animation.num_frames = 120
 		animation.start_x1 = options.start_x1
 		animation.start_y1 = options.start_y1
 		animation.start_x2 = options.start_x2
@@ -384,12 +384,24 @@ local ANIMATION_DROP_TRAIL_HORIZONTAL = { -- w:2, h:1
 	334,
 }
 
+local ANIMATION_GHOST_PILL_HORIZONTAL = { -- w:2, h:1
+	478,
+	462,
+	446,
+}
+
 local ANIMATION_DROP_TRAIL_VERTICAL = { -- w:1, h:1
 	396,
 	380,
 	397,
 	381,
 	365,
+}
+
+local ANIMATION_GHOST_PILL_VERTICAL = { -- w:1, h:2
+	459,
+	460,
+	461,
 }
 
 local STONES_SPR = {
@@ -494,19 +506,47 @@ function Grid:animate_one(index, animation)
 			is_vertical = true
 		end
 		if is_vertical then
-			for y = animation.start_y1, animation.end_y1 - 1, 1 do
+			-- ghost pill
+			local gp_frame = (animation.cur_frame // (animation.num_frames // #ANIMATION_GHOST_PILL_VERTICAL)) + 1
+			spr(
+				ANIMATION_GHOST_PILL_VERTICAL[gp_frame],
+				self:cx(animation.start_x1),
+				self:cy(animation.start_y1),
+				0,
+				1,
+				0,
+				0,
+				1,
+				2
+			)
+
+			-- drop trail
+			for y = animation.start_y2 + 1, animation.end_y1 - 1, 1 do
 				local x = animation.start_x1 -- x does not change
 				local num_sprites = #ANIMATION_DROP_TRAIL_VERTICAL
-				local every_n_frames = animation.num_frames // num_sprites
-				local frame_num = animation.cur_frame // every_n_frames + 1
+				local frame_num = animation.cur_frame // (animation.num_frames // num_sprites) + 1
 				spr(ANIMATION_DROP_TRAIL_VERTICAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 1, 1)
 			end
 		else
-			for y = animation.start_y1, animation.end_y1 - 1, 1 do
+			-- ghost pill
+			local gp_frame = (animation.cur_frame // (animation.num_frames // #ANIMATION_GHOST_PILL_HORIZONTAL)) + 1
+			spr(
+				ANIMATION_GHOST_PILL_HORIZONTAL[gp_frame],
+				self:cx(animation.start_x1),
+				self:cy(animation.start_y1),
+				0,
+				1,
+				0,
+				0,
+				2,
+				1
+			)
+
+			-- drop trail
+			for y = animation.start_y1 + 1, animation.end_y1 - 1, 1 do
 				local x = animation.start_x1 -- x does not change
 				local num_sprites = #ANIMATION_DROP_TRAIL_HORIZONTAL
-				local every_n_frames = animation.num_frames // num_sprites
-				local frame_num = animation.cur_frame // every_n_frames + 1
+				local frame_num = animation.cur_frame // (animation.num_frames // num_sprites) + 1
 				spr(ANIMATION_DROP_TRAIL_HORIZONTAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 2, 1)
 			end
 		end
