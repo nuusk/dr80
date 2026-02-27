@@ -471,17 +471,21 @@ function Grid:draw_character(t)
 end
 
 function Grid:add_animation_to_queue(name, options)
-	local animation = Animation.new(name, options)
+	local animation = Animation:new(name, options)
 	self.animation_queue[animation.index] = animation
 end
 
 function Grid:animate_all()
 	for index, animation in pairs(self.animation_queue) do
-		Grid.animate_one(index, animation)
+		if index ~= nil then
+			Grid.animate_one(index, animation)
+		end
 	end
 end
 
 function Grid:animate_one(index, animation)
+	Console.log(index)
+	Console.log(animation)
 	if animation.name == ANIMATIONS.DROP_TRAIL then
 		local is_vertical = false
 		if animation.options.start_x1 == animation.options.start_x2 then
@@ -1057,6 +1061,12 @@ function Game.draw_grids()
 	end
 end
 
+function Game.animate_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:animate_all()
+	end
+end
+
 function Game.update_params()
 	for _, grid in pairs(Game.grids) do
 		grid:update_params()
@@ -1495,6 +1505,7 @@ function TIC()
 	elseif Game.scene == SCENES.GAME then
 		Game.update_grids()
 		Game.draw_grids()
+		Game.animate_grids()
 	end
 
 	t = t + 1
