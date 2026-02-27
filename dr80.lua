@@ -148,7 +148,11 @@ local Animation = {
 Animation.__index = Animation
 
 function Animation:new(name, options)
-	local animation = {}
+	local animation = {
+		name = name,
+		index = self.animation_index,
+		cur_frame = 0,
+	}
 
 	if name == ANIMATIONS.DROP_TRAIL then
 		animation.num_frames = 20
@@ -165,7 +169,6 @@ function Animation:new(name, options)
 		animation.num_frames = 10
 	end
 
-	animation.index = self.animation_index
 	self.animation_index = self.animation_index + 1
 	return animation
 end
@@ -477,8 +480,9 @@ end
 
 function Grid:animate_all()
 	for index, animation in pairs(self.animation_queue) do
+		self:animate_one(index, animation)
 		if index ~= nil then
-			Grid.animate_one(index, animation)
+			self:animate_one(index, animation)
 		end
 	end
 end
@@ -488,21 +492,23 @@ function Grid:animate_one(index, animation)
 	Console.log(animation)
 	if animation.name == ANIMATIONS.DROP_TRAIL then
 		local is_vertical = false
-		if animation.options.start_x1 == animation.options.start_x2 then
+		if animation.start_x1 == animation.start_x2 then
 			is_vertical = true
 		end
 		if is_vertical then
-			for y = animation.options.start_y1, animation.options.end_y1, 1 do
-				local x = animation.options.start_x1 -- x does not change
+			for y = animation.start_y1, animation.end_y1, 1 do
+				local x = animation.start_x1 -- x does not change
 				local num_sprites = #ANIMATION_DROP_TRAIL_VERTICAL
-				local frame_num = animation.max_frames // num_sprites
+				local every_n_frames = animation.num_frames // (num_sprites - 1)
+				local frame_num = animation.cur_frame // every_n_frames
 				spr(ANIMATION_DROP_TRAIL_VERTICAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 1, 1)
 			end
 		else
-			for y = animation.options.start_y1, animation.options.end_y1, 1 do
-				local x = animation.options.start_x1 -- x does not change
+			for y = animation.start_y1, animation.end_y1, 1 do
+				local x = animation.start_x1 -- x does not change
 				local num_sprites = #ANIMATION_DROP_TRAIL_HORIZONTAL
-				local frame_num = animation.max_frames // num_sprites
+				local every_n_frames = animation.num_frames // (num_sprites - 1)
+				local frame_num = animation.cur_frame // every_n_frames
 				spr(ANIMATION_DROP_TRAIL_HORIZONTAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 2, 1)
 			end
 		end
@@ -510,7 +516,7 @@ function Grid:animate_one(index, animation)
 	end
 
 	animation.cur_frame = animation.cur_frame + 1
-	if animation.cur_frame >= animation.max_frames then
+	if animation.cur_frame >= animation.num_frames then
 		self.animation_queue[index] = nil
 	end
 end
@@ -719,10 +725,17 @@ function Grid:drop_binding()
 		grav_possible, end_x1, end_y1, end_x2, end_y2 = self:grav()
 	end
 
-	self:add_animation_to_queue(
-		ANIMATIONS.DROP_TRAIL,
-		{ start_x1, start_y1, start_x2, start_y2, end_x1, end_y1, end_x2, end_y2, rotation }
-	)
+	self:add_animation_to_queue(ANIMATIONS.DROP_TRAIL, {
+		start_x1 = start_x1,
+		start_y1 = start_y1,
+		start_x2 = start_x2,
+		start_y2 = start_y2,
+		end_x1 = end_x1,
+		end_y1 = end_y1,
+		end_x2 = end_x2,
+		end_y2 = end_y2,
+		rotation = rotation,
+	})
 end
 
 -- instead of bunch of for loops, prepare a table / dictionary to quickly check availability
