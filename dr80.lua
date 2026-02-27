@@ -488,27 +488,25 @@ function Grid:animate_all()
 end
 
 function Grid:animate_one(index, animation)
-	Console.log(index)
-	Console.log(animation)
 	if animation.name == ANIMATIONS.DROP_TRAIL then
 		local is_vertical = false
 		if animation.start_x1 == animation.start_x2 then
 			is_vertical = true
 		end
 		if is_vertical then
-			for y = animation.start_y1, animation.end_y1, 1 do
+			for y = animation.start_y1, animation.end_y1 - 1, 1 do
 				local x = animation.start_x1 -- x does not change
 				local num_sprites = #ANIMATION_DROP_TRAIL_VERTICAL
-				local every_n_frames = animation.num_frames // (num_sprites - 1)
-				local frame_num = animation.cur_frame // every_n_frames
+				local every_n_frames = animation.num_frames // num_sprites
+				local frame_num = animation.cur_frame // every_n_frames + 1
 				spr(ANIMATION_DROP_TRAIL_VERTICAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 1, 1)
 			end
 		else
-			for y = animation.start_y1, animation.end_y1, 1 do
+			for y = animation.start_y1, animation.end_y1 - 1, 1 do
 				local x = animation.start_x1 -- x does not change
 				local num_sprites = #ANIMATION_DROP_TRAIL_HORIZONTAL
-				local every_n_frames = animation.num_frames // (num_sprites - 1)
-				local frame_num = animation.cur_frame // every_n_frames
+				local every_n_frames = animation.num_frames // num_sprites
+				local frame_num = animation.cur_frame // every_n_frames + 1
 				spr(ANIMATION_DROP_TRAIL_HORIZONTAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 2, 1)
 			end
 		end
