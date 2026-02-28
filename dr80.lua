@@ -138,8 +138,9 @@ local Game = {
 -- Animation manager --
 
 local ANIMATIONS = {
-	DROP_TRAIL = 0,
-	SOMETHING = 1,
+	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
+	DISAPPEARING_PILL = 1,
+	SOMETHING = 2,
 }
 
 local Animation = {
@@ -165,8 +166,9 @@ function Animation:new(name, options)
 		animation.end_x2 = options.end_x2
 		animation.end_y2 = options.end_y2
 		animation.rotation = options.rotation
-	elseif name == ANIMATIONS.SOMETHING then
-		animation.num_frames = 10
+	elseif name == ANIMATIONS.DISAPPEARING_PILL then
+		animation.num_frames = 20
+		-- TODO: finish animation
 	end
 
 	self.animation_index = self.animation_index + 1
