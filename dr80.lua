@@ -155,7 +155,7 @@ function Animation:new(name, options)
 	}
 
 	if name == ANIMATIONS.DROP_TRAIL then
-		animation.num_frames = 120
+		animation.num_frames = 60
 		animation.start_x1 = options.start_x1
 		animation.start_y1 = options.start_y1
 		animation.start_x2 = options.start_x2
@@ -501,53 +501,26 @@ end
 
 function Grid:animate_one(index, animation)
 	if animation.name == ANIMATIONS.DROP_TRAIL then
-		local is_vertical = false
+		local y = math.max(animation.start_y1, animation.start_y2)
+		local x = math.min(animation.start_x1, animation.start_x2)
+		local ey = math.min(animation.end_y1, animation.end_y2)
 		if animation.start_x1 == animation.start_x2 then
-			is_vertical = true
-		end
-		if is_vertical then
-			-- ghost pill
 			local gp_frame = (animation.cur_frame // (animation.num_frames // #ANIMATION_GHOST_PILL_VERTICAL)) + 1
-			spr(
-				ANIMATION_GHOST_PILL_VERTICAL[gp_frame],
-				self:cx(animation.start_x1),
-				self:cy(animation.start_y1),
-				0,
-				1,
-				0,
-				0,
-				1,
-				2
-			)
+			spr(ANIMATION_GHOST_PILL_VERTICAL[gp_frame], self:cx(x), self:cy(y), 0, 1, 0, 0, 1, 2)
 
-			-- drop trail
-			for y = animation.start_y2 + 1, animation.end_y1 - 1, 1 do
-				local x = animation.start_x1 -- x does not change
+			for ly = y + 2, ey - 1, 1 do
 				local num_sprites = #ANIMATION_DROP_TRAIL_VERTICAL
 				local frame_num = animation.cur_frame // (animation.num_frames // num_sprites) + 1
-				spr(ANIMATION_DROP_TRAIL_VERTICAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 1, 1)
+				spr(ANIMATION_DROP_TRAIL_VERTICAL[frame_num], self:cx(x), self:cy(ly), 0, 1, 0, 0, 1, 1)
 			end
 		else
-			-- ghost pill
 			local gp_frame = (animation.cur_frame // (animation.num_frames // #ANIMATION_GHOST_PILL_HORIZONTAL)) + 1
-			spr(
-				ANIMATION_GHOST_PILL_HORIZONTAL[gp_frame],
-				self:cx(animation.start_x1),
-				self:cy(animation.start_y1),
-				0,
-				1,
-				0,
-				0,
-				2,
-				1
-			)
+			spr(ANIMATION_GHOST_PILL_HORIZONTAL[gp_frame], self:cx(x), self:cy(y), 0, 1, 0, 0, 2, 1)
 
-			-- drop trail
-			for y = animation.start_y1 + 1, animation.end_y1 - 1, 1 do
-				local x = animation.start_x1 -- x does not change
+			for ly = y + 1, ey - 1, 1 do
 				local num_sprites = #ANIMATION_DROP_TRAIL_HORIZONTAL
 				local frame_num = animation.cur_frame // (animation.num_frames // num_sprites) + 1
-				spr(ANIMATION_DROP_TRAIL_HORIZONTAL[frame_num], self:cx(x), self:cy(y), 0, 1, 0, 0, 2, 1)
+				spr(ANIMATION_DROP_TRAIL_HORIZONTAL[frame_num], self:cx(x), self:cy(ly), 0, 1, 0, 0, 2, 1)
 			end
 		end
 	elseif animation.name == ANIMATIONS.SOMETHING then
