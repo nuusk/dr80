@@ -174,24 +174,6 @@ end
 
 -- Audio manager end --
 
--- Pill manager --
-
-local RUNES = {
-	{ name = "R", W = 490, E = 491, N = 492, S = 508 },
-	{ name = "S", W = 506, E = 507, N = 493, S = 509 },
-	{ name = "E", W = 488, E = 489, N = 494, S = 510 },
-}
-
-local Runes = {}
-
-function Runes.gen_binding_rune()
-	local rune1 = RUNES[math.random(1, #RUNES)]
-	local rune2 = RUNES[math.random(1, #RUNES)]
-	return { rune1 = rune1, rune2 = rune2 }
-end
-
--- Pill manager end --
-
 -- Keymap start --
 
 local KEYMAP_P1 = {
@@ -238,7 +220,7 @@ local KEYMAP_P4 = {
 	SUPER = 31,
 }
 
-local KEYS = {
+local KEYMAPS = {
 	KEYMAP_P1,
 	KEYMAP_P2,
 	KEYMAP_P3,
@@ -329,12 +311,6 @@ function Grid:new(player)
 	return g
 end
 
-local STONES = {
-	{ name = "R", spr = 256 },
-	{ name = "S", spr = 272 },
-	{ name = "E", spr = 288 },
-}
-
 local ANIMATION_DROP_TRAIL_HORIZONTAL = { -- w:2, h:1
 	398,
 	382,
@@ -384,92 +360,6 @@ local ANIMATION_DISAPPEARING_PILL_SINGLE_YELLOW = {
 	409,
 }
 
-local ANIMATION_DISAPPEARING_PILL_LEFT_RED = {
-	416,
-	432,
-	418,
-	440,
-}
-
-local ANIMATION_DISAPPEARING_PILL_LEFT_BLUE = {
-	434,
-	420,
-	436,
-	440,
-}
-
-local ANIMATION_DISAPPEARING_PILL_LEFT_YELLOW = {
-	422,
-	438,
-	424,
-	440,
-}
-
-local ANIMATION_DISAPPEARING_PILL_RIGHT_RED = {
-	417,
-	433,
-	419,
-	441,
-}
-
-local ANIMATION_DISAPPEARING_PILL_RIGHT_BLUE = {
-	435,
-	421,
-	437,
-	441,
-}
-
-local ANIMATION_DISAPPEARING_PILL_RIGHT_YELLOW = {
-	423,
-	439,
-	425,
-	441,
-}
-
-local ANIMATION_DISAPPEARING_PILL_TOP_RED = {
-	448,
-	449,
-	450,
-	457,
-}
-
-local ANIMATION_DISAPPEARING_PILL_TOP_BLUE = {
-	451,
-	452,
-	453,
-	457,
-}
-
-local ANIMATION_DISAPPEARING_PILL_TOP_YELLOW = {
-	454,
-	455,
-	456,
-	457,
-}
-
-local ANIMATION_DISAPPEARING_PILL_BOTTOM_RED = {
-	464,
-	465,
-	466,
-	473,
-}
-
-local ANIMATION_DISAPPEARING_PILL_BOTTOM_BLUE = {
-	467,
-	468,
-	469,
-	473,
-}
-
-local ANIMATION_DISAPPEARING_PILL_BOTTOM_YELLOW = {
-	470,
-	471,
-	472,
-	473,
-}
-
--- Animation manager --
-
 local ANIMATIONS = {
 	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
 	DISAPPEARING_PILL = 1,
@@ -516,7 +406,19 @@ function Animation:new(name, options)
 	return animation
 end
 
---
+local RUNES = {
+	{ name = "R", W = 490, E = 491, N = 492, S = 508 },
+	{ name = "S", W = 506, E = 507, N = 493, S = 509 },
+	{ name = "E", W = 488, E = 489, N = 494, S = 510 },
+}
+
+local Runes = {}
+
+function Runes.gen_binding_rune()
+	local rune1 = RUNES[math.random(1, #RUNES)]
+	local rune2 = RUNES[math.random(1, #RUNES)]
+	return { rune1 = rune1, rune2 = rune2 }
+end
 
 local STONES_SPR = {
 	R = 256,
@@ -1500,7 +1402,7 @@ function Menu:update()
 end
 
 function setup_player_keys(player_index)
-	print(KEYS[player_index])
+	print(KEYMAPS[player_index])
 end
 
 local main_menu
@@ -1550,7 +1452,7 @@ main_menu = Menu:new({
 Game.menu = main_menu
 
 function Grid:update()
-	local keys = KEYS[self.player]
+	local keys = KEYMAPS[self.player]
 	if btnp(keys.A) then
 		self:rotate_clockwise()
 	end
@@ -1610,7 +1512,7 @@ function btnp_repeat(b)
 end
 
 function Grid:update_params()
-	local keys = KEYS[self.player]
+	local keys = KEYMAPS[self.player]
 	if btnp(keys.UP) then
 		self:param_up()
 	end
