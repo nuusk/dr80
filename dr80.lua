@@ -135,48 +135,6 @@ local Game = {
 	players = 1,
 }
 
--- Animation manager --
-
-local ANIMATIONS = {
-	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
-	DISAPPEARING_PILL = 1,
-	SOMETHING = 2,
-}
-
-local Animation = {
-	animation_index = 0,
-}
-Animation.__index = Animation
-
-function Animation:new(name, options)
-	local animation = {
-		name = name,
-		index = self.animation_index,
-		cur_frame = 0,
-	}
-
-	if name == ANIMATIONS.DROP_TRAIL then
-		animation.num_frames = 30
-		animation.start_x1 = options.start_x1
-		animation.start_y1 = options.start_y1
-		animation.start_x2 = options.start_x2
-		animation.start_y2 = options.start_y2
-		animation.end_x1 = options.end_x1
-		animation.end_y1 = options.end_y1
-		animation.end_x2 = options.end_x2
-		animation.end_y2 = options.end_y2
-		animation.rotation = options.rotation
-	elseif name == ANIMATIONS.DISAPPEARING_PILL then
-		animation.num_frames = 20
-		-- TODO: finish animation
-	end
-
-	self.animation_index = self.animation_index + 1
-	return animation
-end
-
---
-
 -- Audio manager --
 
 local Audio = {
@@ -211,7 +169,6 @@ end
 function Audio.generate_note(combo, character)
 	-- change chord based on character
 	local x = Audio.chords.arcade[math.min(combo, 4)]
-	Console.log("combo: " .. combo .. " ,chord: " .. x)
 	return x
 end
 
@@ -511,6 +468,56 @@ local ANIMATION_DISAPPEARING_PILL_BOTTOM_YELLOW = {
 	473,
 }
 
+-- Animation manager --
+
+local ANIMATIONS = {
+	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
+	DISAPPEARING_PILL = 1,
+	SOMETHING = 2,
+}
+
+local Animation = {
+	animation_index = 0,
+}
+Animation.__index = Animation
+
+function Animation:new(name, options)
+	local animation = {
+		name = name,
+		index = self.animation_index,
+		cur_frame = 0,
+	}
+
+	if name == ANIMATIONS.DROP_TRAIL then
+		animation.num_frames = 30
+		animation.start_x1 = options.start_x1
+		animation.start_y1 = options.start_y1
+		animation.start_x2 = options.start_x2
+		animation.start_y2 = options.start_y2
+		animation.end_x1 = options.end_x1
+		animation.end_y1 = options.end_y1
+		animation.end_x2 = options.end_x2
+		animation.end_y2 = options.end_y2
+		animation.rotation = options.rotation
+	elseif name == ANIMATIONS.DISAPPEARING_PILL then
+		animation.num_frames = 20
+		animation.x = options.x
+		animation.y = options.y
+		if options.color == "R" then
+			animation.sprites = ANIMATION_DISAPPEARING_PILL_SINGLE_RED
+		elseif options.color == "S" then
+			animation.sprites = ANIMATION_DISAPPEARING_PILL_SINGLE_YELLOW
+		elseif options.color == "E" then
+			animation.sprites = ANIMATION_DISAPPEARING_PILL_SINGLE_BLUE
+		end
+	end
+
+	self.animation_index = self.animation_index + 1
+	return animation
+end
+
+--
+
 local STONES_SPR = {
 	R = 256,
 	S = 272,
@@ -641,7 +648,9 @@ function Grid:animate_one(index, animation)
 				trail_offset = trail_offset + 1
 			end
 		end
-	elseif animation.name == ANIMATIONS.SOMETHING then
+	elseif animation.name == ANIMATIONS.DISAPPEARING_PILL then
+		local sprite = animation.sprites[animation.cur_frame // 5]
+		spr(sprite, self:cx(animation.x), self:cy(animation.y), 0, 1, 0, 0, 1, 1)
 	end
 
 	animation.cur_frame = animation.cur_frame + 1
@@ -712,18 +721,17 @@ function Grid:count_stones()
 end
 
 function Grid:increment_combo()
-	Console.log("inc")
 	self.combo = self.combo + 1
 	local note = Audio.generate_note(self.combo, self.character.name)
 	if self.player == 1 then
-		Console.log("combo: " .. self.combo .. ", note: " .. note)
+		-- Console.log("combo: " .. self.combo .. ", note: " .. note)
 	end
 	Audio.play(SFX.CLEAR, -2, note)
 end
 
 function Grid:reset_combo()
 	if self.player == 1 then
-		Console.log(self.player .. " combo reset")
+		-- Console.log(self.player .. " combo reset")
 	end
 	self.combo = 0
 end
@@ -1265,9 +1273,6 @@ function Grid:eval()
 	self:count_y_rle()
 	local to_remove = self:remove_marked()
 	if to_remove > 0 then
-		if self.player == 1 then
-			Console.log("to_remove: " .. to_remove .. ", increment combo")
-		end
 		self:increment_combo()
 		return
 	end
@@ -1368,7 +1373,7 @@ function Grid:remove_marked()
 
 	local to_remove_diff = {}
 	local to_convert_diff = {}
-	local oh_boy_we_gotta_remove_something = 0
+	local removed_counter = 0
 
 	for y = self.h - 1, 0, -1 do
 		for x = self.w - 1, 0, -1 do
@@ -1382,9 +1387,12 @@ function Grid:remove_marked()
 					table.insert(to_convert_diff, oh)
 				end
 
-				table.insert(to_remove_diff, { x = x, y = y })
+				table.insert(
+					to_remove_diff,
+					{ x = x, y = y, color = board_copy[y][x].color, type = board_copy[y][x].type }
+				)
 
-				oh_boy_we_gotta_remove_something = oh_boy_we_gotta_remove_something + 1
+				removed_counter = removed_counter + 1
 			end
 
 			::continue::
@@ -1399,19 +1407,25 @@ function Grid:remove_marked()
 		end
 	end
 
-	for _, pos in ipairs(to_remove_diff) do
-		self.board[pos.y][pos.x] = nil
-		local cx = self:cx(pos.x)
-		local cy = self:cy(pos.y)
+	for _, diff in ipairs(to_remove_diff) do
+		self.board[diff.y][diff.x] = nil
+		local cx = self:cx(diff.x)
+		local cy = self:cy(diff.y)
 		spr(BORDER.CENTER, cx, cy, 0)
+
+		self:add_animation_to_queue(ANIMATIONS.DISAPPEARING_PILL, {
+			x = diff.x,
+			y = diff.y,
+			color = diff.color,
+		})
 	end
 
-	if oh_boy_we_gotta_remove_something > 0 then
+	if removed_counter > 0 then
 		self.cascade_trigger = true
 		self:count_stones()
 	end
 
-	return oh_boy_we_gotta_remove_something
+	return removed_counter
 end
 
 -- Game manager end --
