@@ -69,7 +69,7 @@ end
 
 function Console.update()
 	if btnp(7) then
-		Console.toggle()
+		-- Console.toggle()
 	end
 	if not Console.open then
 		return
@@ -243,8 +243,8 @@ local TARGETS = {
 local FACES = {
 	PLAYER_1 = 0,
 	PLAYER_2 = 48,
-	PLAYER_3 = 96,
-	PLAYER_4 = 144,
+	PLAYER_3 = 192,
+	PLAYER_4 = 208,
 }
 --
 
@@ -301,7 +301,9 @@ function Grid:new(player)
 		g.score_x = g.w + 1
 		g.score_y = g.h
 		g.target_x = g.w + 1
-		g.target_y = g.h - 6
+		g.target_y = g.h - 7
+		g.target_selected_x = g.w + 1
+		g.target_selected_y = g.h - 6
 	else
 		g.px = (player - 1) * (g.w + 1) + 1
 		g.next_binding_x = g.w - 3
@@ -311,7 +313,9 @@ function Grid:new(player)
 		g.score_x = 0
 		g.score_y = -2
 		g.target_x = 0
-		g.target_y = -3
+		g.target_y = -4
+		g.target_selected_x = 2
+		g.target_selected_y = -4
 	end
 
 	g.interval = Grid.interval
@@ -735,20 +739,22 @@ end
 function Grid:draw_target()
 	local cx = self:cx(self.target_x)
 	local cy = self:cy(self.target_y)
+	local cx2 = self:cx(self.target_selected_x)
+	local cy2 = self:cy(self.target_selected_y)
 
 	print("TAR:", cx, cy, 13, true, 1, true)
 	if self.target == TARGETS.LEADER then
-		print("lead", cx, self:cy(self.target_y + 1), 8, true, 1, true)
+		print("lead", cx2, cy2, 8, true, 1, true)
 	elseif self.target == TARGETS.PLAYER_1 then
-		spr(FACES.PLAYER_1, cx, self:cy(self.target_y + 1), 0, 1, 0, 0, 1, 2)
+		spr(FACES.PLAYER_1, cx2, cy2, 0, 1, 0, 0, 2, 1)
 	elseif self.target == TARGETS.PLAYER_2 then
-		spr(FACES.PLAYER_2, cx, self:cy(self.target_y + 1), 0, 1, 0, 0, 1, 2)
+		spr(FACES.PLAYER_2, cx2, cy2, 0, 1, 0, 0, 2, 1)
 	elseif self.target == TARGETS.PLAYER_3 then
-		spr(FACES.PLAYER_3, cx, self:cy(self.target_y + 1), 0, 1, 0, 0, 1, 2)
+		spr(FACES.PLAYER_3, cx2, cy2, 0, 1, 0, 0, 2, 1)
 	elseif self.target == TARGETS.PLAYER_4 then
-		spr(FACES.PLAYER_4, cx, self:cy(self.target_y + 1), 0, 1, 0, 0, 1, 2)
+		spr(FACES.PLAYER_4, cx2, cy2, 0, 1, 0, 0, 2, 1)
 	elseif self.target == TARGETS.RANDOM then
-		print("rand", cx, self:cy(self.target_y + 1), 8, true, 1, true)
+		print("rand", cx2, cy2, 8, true, 1, true)
 	end
 end
 
@@ -834,6 +840,30 @@ function Grid:move_right()
 		self.active_binding.x = self.active_binding.x + 1
 	else
 		Audio.play(SFX.INVALID)
+	end
+end
+
+function Grid:cycle_target()
+	if self.target == nil then
+		self.target = TARGETS.LEADER
+	end
+
+	if self.target == TARGETS.LEADER then
+		self.target = TARGETS.PLAYER_1
+	elseif self.target == TARGETS.PLAYER_1 then
+		self.target = TARGETS.PLAYER_2
+	elseif self.target == TARGETS.PLAYER_2 then
+		self.target = TARGETS.PLAYER_3
+	elseif self.target == TARGETS.PLAYER_3 then
+		self.target = TARGETS.PLAYER_4
+	elseif self.target == TARGETS.PLAYER_4 then
+		self.target = TARGETS.RANDOM
+	elseif self.target == TARGETS.RANDOM then
+		self.target = TARGETS.LEADER
+	end
+
+	if self.target == self.player then
+		self:cycle_target()
 	end
 end
 
@@ -1558,6 +1588,9 @@ function Grid:update()
 	if btnp(keys.PAUSE) then
 		-- implement pause
 	end
+	if btnp(keys.SUPER) then
+		self:cycle_target()
+	end
 
 	local effective_interval = self.interval
 	if btn(keys.DOWN) and self.active_binding ~= nil then
@@ -1782,6 +1815,10 @@ end
 -- 183:7777c00077777c0047777c00747777c00ccccc000c0000000c0000000c900000
 -- 184:00000c470000c47400c444470000cccc0000000c0000000c0000000c000009cc
 -- 185:7777c00077777c0047777c00747777c00ccccc000c0000000c0000000c900000
+-- 192:000ccccc00cc474700c4cccc0ccc5c550c4c52550c4c555500c4cccc00cc4444
+-- 193:ccccccc0477777ccccc7777cc5ccc77c2551cc7c5551c47ccccc47cc44477cc0
+-- 208:000ccccc00cccc930c4777930c44ccccc4cc5c550cc65b5500c6555500c6cccc
+-- 209:cc7777cc9cccc77c9777ccccccc777ccc5ccc77cb556ccc7555666cccccc666c
 -- </TILES>
 
 -- <SPRITES>
@@ -2037,3 +2074,4 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
