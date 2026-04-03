@@ -448,6 +448,12 @@ function Runes.gen_binding_rune()
 	return { rune1 = rune1, rune2 = rune2 }
 end
 
+function Runes.get_random_color()
+	local bag = { "R", "S", "E" }
+	local i = math.random(#bag)
+	return bag[i]
+end
+
 local STONES_SPR = {
 	R = 256,
 	S = 272,
@@ -693,9 +699,6 @@ function Grid:increment_combo()
 end
 
 function Grid:reset_combo()
-	if self.player == 1 then
-		-- Console.log(self.player .. " combo reset")
-	end
 	self.combo = 0
 end
 
@@ -787,6 +790,34 @@ function Grid:spawn_binding(binding)
 		y = spawny,
 		rotation = 0,
 	}
+end
+
+function Grid:spawn_surprises(num_surprises)
+	local bag = {}
+	for x = 0, self.w, 1 do
+		table.insert(bag, x)
+	end
+
+	Console.log("sending " .. num_surprises .. " surprises to " .. self.player)
+	for i = 1, num_surprises, 1 do
+		local spawnindex = math.random(#bag)
+		local spawnx = bag[spawnindex]
+		table.remove(bag, spawnindex)
+		local spawny = 0
+
+		local cell = self.board[spawny][spawnx]
+		if not cell then
+			local color = Runes.get_random_color()
+			cell = {
+				type = "half",
+				color = color,
+				spr = HALVES_SPR[color],
+			}
+		end
+		self.board[spawny][spawnx] = cell
+	end
+
+	self.cascade_trigger = true
 end
 
 function Grid:rotate_clockwise()
@@ -1221,6 +1252,47 @@ function Game.setup_game(players)
 	Game.scene = SCENES.GAME
 end
 
+function Game.find_leader(excluded_player)
+	local leader = 1
+	local min = 9999999
+	for _, grid in pairs(Game.grids) do
+		if grid.player == excluded_player then
+			goto continue
+		end
+
+		if grid.num_stones > min then
+			min = grid.num_stones
+			leader = grid.player
+		end
+		::continue::
+	end
+
+	return leader
+end
+
+function Game.find_random(excluded_player)
+	local bag = {}
+	for _, grid in pairs(Game.grids) do
+		if grid.player == excluded_player then
+			goto continue
+		end
+
+		Console.log("bag has " .. grid.player)
+		table.insert(bag, grid.player)
+		::continue::
+	end
+
+	local rand = math.random(#bag)
+	Console.log("chose " .. rand)
+	return bag[rand]
+end
+
+function Game.send_surprises(victim, combo)
+	local num_surprises = combo + 1
+	Console.log("sencing" .. victim)
+	Game.grids[victim]:spawn_surprises(num_surprises)
+end
+
 function Game.update_grids()
 	for _, grid in pairs(Game.grids) do
 		grid:update()
@@ -1304,12 +1376,28 @@ function Grid:eval()
 	end
 
 	if self.active_binding == nil then
+		if self.combo > 1 then
+			self:send_surprises(self.combo, self.target)
+		end
 		self:reset_combo()
 		self:spawn_binding(self.next_binding)
 		self.next_binding = nil
 	else
 		self:grav()
 	end
+end
+
+function Grid:send_surprises(combo, target)
+	local victim = 0
+	if target == TARGETS.LEADER then
+		victim = Game.find_leader(self.player)
+	elseif target == TARGETS.RANDOM then
+		victim = Game.find_random(self.player)
+	else
+		victim = target
+	end
+
+	Game.send_surprises(victim, combo)
 end
 
 function Grid:mark_to_remove_on_y(y, from, to)
@@ -2074,4 +2162,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
