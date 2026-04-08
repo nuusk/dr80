@@ -281,6 +281,7 @@ local Grid = {
 	is_paused = false,
 	character = nil,
 	combo = 0,
+	game_over = false,
 }
 Grid.__index = Grid
 
@@ -783,13 +784,23 @@ function Grid:spawn_binding(binding)
 	end
 	local spawny = 0
 
-	self.active_binding = {
-		rune1 = binding.rune1,
-		rune2 = binding.rune2,
-		x = spawnx,
-		y = spawny,
-		rotation = 0,
-	}
+	local game_over = not self:available(spawnx, spawny)
+	if game_over then
+		self:trigger_game_over()
+	else
+		self.active_binding = {
+			rune1 = binding.rune1,
+			rune2 = binding.rune2,
+			x = spawnx,
+			y = spawny,
+			rotation = 0,
+		}
+	end
+end
+
+function Grid:trigger_game_over()
+	Audio.play(SFX.OVERFLOW)
+	self.game_over = true
 end
 
 function Grid:spawn_surprises(num_surprises)
@@ -1692,7 +1703,7 @@ function Grid:update()
 	end
 
 	if t % effective_interval == 0 then
-		if self.is_paused ~= true then
+		if self.is_paused ~= true and self.game_over ~= true then
 			self:eval()
 		end
 	end
