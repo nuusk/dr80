@@ -935,7 +935,7 @@ function Grid:available(x, y)
 	end
 
 	if y < 0 then
-		return true
+		return false
 	end
 
 	if y >= self.h then
