@@ -584,7 +584,7 @@ end
 
 function Grid:animate_one(index, animation)
 	if animation.name == ANIMATIONS.DROP_TRAIL then
-		local start_y = math.max(animation.start_y1, animation.start_y2)
+		local start_y = math.min(animation.start_y1, animation.start_y2)
 		local start_x = math.min(animation.start_x1, animation.start_x2)
 		local end_y = math.min(animation.end_y1, animation.end_y2)
 
