@@ -69,7 +69,7 @@ end
 
 function Console.update()
 	if btnp(7) then
-		-- Console.toggle()
+		Console.toggle()
 	end
 	if not Console.open then
 		return
@@ -86,7 +86,7 @@ function Console.draw()
 	if not Console.open then
 		return
 	end
-	local w, h = 140, 120
+	local w, h = 140, 130
 	local x, y = 100, 0
 	rect(x, y, w, h, 0)
 	rectb(x, y, w, h, 13)
@@ -264,6 +264,7 @@ local BORDER = {
 
 local BACKGROUND = {
 	SINGLE = 503,
+	SINGLE_TRANSPARENT = 474,
 	SQUARE_2x2 = 270,
 }
 
@@ -693,9 +694,6 @@ end
 function Grid:increment_combo()
 	self.combo = self.combo + 1
 	local note = Audio.generate_note(self.combo, self.character.name)
-	if self.player == 1 then
-		-- Console.log("combo: " .. self.combo .. ", note: " .. note)
-	end
 	Audio.play(SFX.CLEAR, -2, note)
 end
 
@@ -784,7 +782,7 @@ function Grid:spawn_binding(binding)
 	end
 	local spawny = 0
 
-	local game_over = not self:available(spawnx, spawny)
+	local game_over = not (self:available(spawnx, spawny) and self:available(spawnx + 1, spawny))
 	if game_over then
 		self:trigger_game_over()
 	else
@@ -945,8 +943,9 @@ function Grid:available(x, y)
 		return false
 	end
 
+	-- allow rotation right after spawn
 	if y < 0 then
-		return false
+		return true
 	end
 
 	if y >= self.h then
@@ -1192,16 +1191,27 @@ function Grid:draw_border()
 	for y = 0, self.h + 1 do
 		local cy = self:cy(y - 1)
 		for x = 0, self.w + 1 do
-			ok = false
-			if y == 0 or y == self.h + 1 then
+			local ok = false
+			local transparent = false
+			if y == self.h + 1 then
 				ok = true
+			end
+			if y == 0 then
+				ok = true
+				if x > 1 and x < self.w then
+					transparent = true
+				end
 			end
 			if x == 0 or x == self.w + 1 then
 				ok = true
 			end
 			if ok == true then
 				local cx = self:cx(x - 1)
-				spr(BACKGROUND.SINGLE, cx, cy, 0)
+				local sprt = BACKGROUND.SINGLE
+				if transparent == true then
+					sprt = BACKGROUND.SINGLE_TRANSPARENT
+				end
+				spr(sprt, cx, cy, 0)
 			end
 		end
 	end
@@ -1300,7 +1310,6 @@ end
 
 function Game.send_surprises(victim, combo)
 	local num_surprises = combo + 1
-	Console.log("sencing" .. victim)
 	Game.grids[victim]:spawn_surprises(num_surprises)
 end
 
@@ -1362,6 +1371,15 @@ function Game.assign_grid_width()
 	else
 		Console.log("unexpected number of players during assign_grid_width")
 	end
+end
+
+function Grid:log_state()
+	Console.clear()
+	Console.log(self.active_binding)
+	Console.log(self.combo)
+	Console.log(self.board)
+	Console.log(self.game_over)
+	Console.log(self.cascade_trigger)
 end
 
 function Grid:eval()
@@ -1685,7 +1703,7 @@ function Grid:update()
 		self:move_right()
 	end
 	if btnp(keys.PAUSE) then
-		-- implement pause
+		self:log_state()
 	end
 	if btnp(keys.SUPER) then
 		self:cycle_target()
@@ -2055,6 +2073,7 @@ end
 -- 215:6000050660000006600000066000000660500006600500066600006606666660
 -- 216:5000050550000005500000055000000550500005500500055500005505555550
 -- 217:d0000d0dd000000dd000000dd000000dd0d0000dd00d000ddd0000dd0dddddd0
+-- 218:0eeeeee0ee0000eee000e00ee0000e0ee0e0000ee00e000eee0000ee0eeeeee0
 -- 219:80000d0880000008800000088000000880d00008800d00088800008808888880
 -- 220:d0000d0dd000000dd000000dd000000dd0d0000dd00d000ddd0000dd0dddddd0
 -- 221:e0000d0ee000000ee000000ee000000ee0d0000ee00d000eee0000ee0eeeeee0
