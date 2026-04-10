@@ -69,7 +69,7 @@ end
 
 function Console.update()
 	if btnp(7) then
-		Console.toggle()
+		-- Console.toggle()
 	end
 	if not Console.open then
 		return
@@ -282,6 +282,7 @@ local Grid = {
 	is_paused = false,
 	character = nil,
 	combo = 0,
+	surprises_queue = 0,
 	game_over = false,
 }
 Grid.__index = Grid
@@ -697,6 +698,10 @@ function Grid:increment_combo()
 	Audio.play(SFX.CLEAR, -2, note)
 end
 
+function Grid:queue_surprises(num_surprises)
+	self.surprises_queue = self.surprises_queue + num_surprises
+end
+
 function Grid:reset_combo()
 	self.combo = 0
 end
@@ -760,19 +765,6 @@ function Grid:draw_target()
 	end
 end
 
-function Grid:draw_next_binding()
-	local next = self.next_binding
-	if not next then
-		return
-	end
-
-	local x1, y1, x2, y2 = self:get_binding_xy(next)
-	local spr1, spr2 = self:get_binding_spr(next)
-
-	spr(spr1, self:cx(x1), self:cy(y1), 0)
-	spr(spr2, self:cx(x2), self:cy(y2), 0)
-end
-
 function Grid:spawn_binding(binding)
 	local spawnx = 0
 	if self.w % 2 == 0 then
@@ -802,8 +794,12 @@ function Grid:trigger_game_over()
 end
 
 function Grid:spawn_surprises(num_surprises)
+	if num_surprises > self.w - 1 then
+		num_surprises = self.w - 1
+	end
+
 	local bag = {}
-	for x = 0, self.w, 1 do
+	for x = 0, self.w - 1, 1 do
 		table.insert(bag, x)
 	end
 
@@ -893,9 +889,17 @@ function Grid:cycle_target()
 	elseif self.target == TARGETS.PLAYER_1 then
 		self.target = TARGETS.PLAYER_2
 	elseif self.target == TARGETS.PLAYER_2 then
-		self.target = TARGETS.PLAYER_3
+		if #Game.grids > 2 then
+			self.target = TARGETS.PLAYER_3
+		else
+			self.target = TARGETS.RANDOM
+		end
 	elseif self.target == TARGETS.PLAYER_3 then
-		self.target = TARGETS.PLAYER_4
+		if #Game.grids > 3 then
+			self.target = TARGETS.PLAYER_4
+		else
+			self.target = TARGETS.RANDOM
+		end
 	elseif self.target == TARGETS.PLAYER_4 then
 		self.target = TARGETS.RANDOM
 	elseif self.target == TARGETS.RANDOM then
@@ -1079,6 +1083,7 @@ function Grid:grav_halves()
 							self.board[oh_pos.y + 1][oh_pos.x].other_half.y = y + 1
 							self.board[oh_pos.y][oh_pos.x] = nil
 							already_moved[oh_pos.y][oh_pos.x] = true
+							still_falling = true
 						end
 					elseif is_available_binding and is_available_oh then
 						self.board[y + 1][x] = table.deep_copy(self.board[y][x])
@@ -1281,7 +1286,7 @@ function Game.find_leader(excluded_player)
 			goto continue
 		end
 
-		if grid.num_stones > min then
+		if grid.num_stones < min then
 			min = grid.num_stones
 			leader = grid.player
 		end
@@ -1309,8 +1314,17 @@ function Game.find_random(excluded_player)
 end
 
 function Game.send_surprises(victim, combo)
+	Console.log("victim: " .. victim)
+	Console.log("combo: " .. combo)
+	Console.log("#grids: " .. #Game.grids)
+	Console.log("#players: " .. Game.players)
+
+	for _, grid in pairs(Game.grids) do
+		Console.log(grid.player)
+	end
+
 	local num_surprises = combo + 1
-	Game.grids[victim]:spawn_surprises(num_surprises)
+	Game.grids[victim]:queue_surprises(num_surprises)
 end
 
 function Game.update_grids()
@@ -1383,6 +1397,13 @@ function Grid:log_state()
 end
 
 function Grid:eval()
+	if self.active_binding == nil and self.surprises_queue > 0 then
+		-- TODO: check for race condition in here vs queue_surprises by other grids
+		self:spawn_surprises(self.surprises_queue)
+		self.surprises_queue = 0
+		return
+	end
+
 	if self.cascade_trigger == true then
 		local halves_still_falling = self:grav_halves()
 		self.cascade_trigger = halves_still_falling
@@ -1407,10 +1428,11 @@ function Grid:eval()
 	if self.active_binding == nil then
 		if self.combo > 1 then
 			self:send_surprises(self.combo, self.target)
+		else
+			self:spawn_binding(self.next_binding)
+			self.next_binding = nil
 		end
 		self:reset_combo()
-		self:spawn_binding(self.next_binding)
-		self.next_binding = nil
 	else
 		self:grav()
 	end
@@ -1418,6 +1440,7 @@ end
 
 function Grid:send_surprises(combo, target)
 	local victim = 0
+	Console.log("target: " .. target)
 	if target == TARGETS.LEADER then
 		victim = Game.find_leader(self.player)
 	elseif target == TARGETS.RANDOM then
