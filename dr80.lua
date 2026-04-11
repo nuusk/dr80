@@ -1218,25 +1218,30 @@ function Grid:mark_active_binding_as_static()
 	end
 
 	local x1, y1, x2, y2 = self:get_binding_xy()
+
 	local spr1, spr2 = self:get_binding_spr()
-	self.board[y1][x1] = {
-		type = "binding",
-		color = self.active_binding.rune1.name,
-		spr = spr1,
-		other_half = {
-			x = x2,
-			y = y2,
-		},
-	}
-	self.board[y2][x2] = {
-		type = "binding",
-		color = self.active_binding.rune2.name,
-		spr = spr2,
-		other_half = {
-			x = x1,
-			y = y1,
-		},
-	}
+	if y1 >= 0 then
+		self.board[y1][x1] = {
+			type = "binding",
+			color = self.active_binding.rune1.name,
+			spr = spr1,
+			other_half = {
+				x = x2,
+				y = y2,
+			},
+		}
+	end
+	if y2 >= 0 then
+		self.board[y2][x2] = {
+			type = "binding",
+			color = self.active_binding.rune2.name,
+			spr = spr2,
+			other_half = {
+				x = x1,
+				y = y1,
+			},
+		}
+	end
 
 	self.active_binding = nil
 end
