@@ -34,4 +34,4 @@ Instruments:
 
 00 - 07: Generic waves, used across different sound effects and tracks
 12 - 15: Instrument "per character" so that each character has its own "music vibe" (12 is character1, 13 character2, 14 character3, 15 character4)
-  (note: other than just instruments, characters use different notes for their sound effects)
+  (note: other than just instruments, characters use different base notes for their sound effects)
