@@ -1406,20 +1406,20 @@ function Grid:eval()
 		return
 	end
 
-	if self.next_binding == nil then
-		self:gen_next_binding()
-	end
-
 	if self.active_binding == nil then
 		if self.combo > 1 then
 			self:send_surprises(self.combo, self.target)
-		else
+		elseif self.next_binding ~= nil then
 			self:spawn_binding(self.next_binding)
 			self.next_binding = nil
 		end
 		self:reset_combo()
 	else
 		self:grav()
+	end
+
+	if self.next_binding == nil then
+		self:gen_next_binding()
 	end
 end
 
