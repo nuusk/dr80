@@ -158,7 +158,7 @@ local Assets = {
 				S = 487,
 				E = 502,
 			},
-			surprise_queued = {
+			queued_surprise = {
 				R = 401,
 				S = 407,
 				E = 403,
@@ -237,7 +237,7 @@ local Audio = {
 	},
 }
 
-function Audio.playBGM(track, loop)
+function Audio.play_bgm(track, loop)
 	if Audio.bgm == track then
 		return
 	end
@@ -245,7 +245,7 @@ function Audio.playBGM(track, loop)
 	Audio.bgm = track
 end
 
-function Audio.stopBGM()
+function Audio.stop_bgm()
 	music(-1)
 	Audio.bgm = nil
 end
@@ -254,13 +254,12 @@ function Audio.play(id, speed, note)
 	sfx(id, note, -1, Audio.reserved.sfx, 15, speed or 0, false)
 end
 
-function Audio.generate_note(combo, character)
-	-- change chord based on character
-	local x = Audio.chords.happy[math.min(combo, 4)]
-	if character == 3 or character == 4 then
-		local x = Audio.chords.arcade[math.min(combo, 4)]
+function Audio.generate_character_note(combo, character_name)
+	local note = Audio.chords.happy[math.min(combo, 4)]
+	if character_name == "amethyst" or character_name == "pearl" then
+		note = Audio.chords.arcade[math.min(combo, 4)]
 	end
-	return x
+	return note
 end
 
 -- Audio manager end --
@@ -331,6 +330,12 @@ local TARGETS = {
 	RANDOM = 5,
 }
 
+local CELL_TYPES = {
+	STONE = "stone",
+	HALF = "half",
+	PILL = "pill",
+}
+
 -- Grid manager --
 
 local Grid = {
@@ -342,14 +347,14 @@ function Grid:new(player)
 	local g = setmetatable({}, Grid)
 
 	g.player = player
-	g.h = Game.assign_grid_height()
-	g.w = Game.assign_grid_width()
-	g.py = Game.assign_py()
+	g.h = Game.get_grid_height()
+	g.w = Game.get_grid_width()
+	g.py = Game.get_grid_y()
 	g.target = TARGETS.LEADER
 	if Game.players <= 2 then
 		g.px = (player - 1) * (g.w + 4) + 1
-		g.next_binding_x = g.w + 1
-		g.next_binding_y = 0
+		g.next_pill_x = g.w + 1
+		g.next_pill_y = 0
 		g.character_x = g.w + 1
 		g.character_y = g.h - 4
 		g.score_x = g.w + 1
@@ -360,8 +365,8 @@ function Grid:new(player)
 		g.target_selected_y = g.h - 7
 	else
 		g.px = (player - 1) * (g.w + 1) + 1
-		g.next_binding_x = g.w - 3
-		g.next_binding_y = -3
+		g.next_pill_x = g.w - 3
+		g.next_pill_y = -3
 		g.character_x = g.w - 1
 		g.character_y = -4
 		g.score_x = 0
@@ -375,9 +380,9 @@ function Grid:new(player)
 	g.cell_size = Grid.cell_size
 	g.level = 9
 	g.num_stones = 0
-	g.next_binding = nil
-	g.static_bindings = {}
-	g.active_binding = nil
+	g.next_pill = nil
+	g.static_pills = {}
+	g.active_pill = nil
 	g.halves = {}
 	g.drop_phase = false
 	g.board = {}
@@ -385,8 +390,8 @@ function Grid:new(player)
 	g.is_paused = false
 	g.character = nil
 	g.combo = 0
-	g.surprises_queue = 0
-	g.surprises_drawn = {}
+	g.pending_surprises = 0
+	g.queued_surprises = {}
 	g.game_over = false
 	g.cascade_trigger = false
 
@@ -442,7 +447,7 @@ end
 
 local Runes = {}
 
-function Runes.gen_binding_rune()
+function Runes.generate_pill_runes()
 	local runes = Assets.sprites.pieces.runes
 	local rune1 = runes[math.random(1, #runes)]
 	local rune2 = runes[math.random(1, #runes)]
@@ -631,7 +636,7 @@ function Grid:generate_stones(level)
 		end
 		table.remove(bag, rand_num)
 		self.board[rand_pos.y][rand_pos.x] = {
-			type = "stone",
+			type = CELL_TYPES.STONE,
 			spr = Assets.sprites.pieces.stones[color],
 			color = color,
 		}
@@ -644,7 +649,7 @@ function Grid:count_stones()
 	local count = 0
 	for y = 0, self.h - 1, 1 do
 		for x = 0, self.w - 1, 1 do
-			if self.board[y][x] ~= nil and self.board[y][x].type == "stone" then
+			if self.board[y][x] ~= nil and self.board[y][x].type == CELL_TYPES.STONE then
 				count = count + 1
 			end
 		end
@@ -655,12 +660,12 @@ end
 
 function Grid:increment_combo()
 	self.combo = self.combo + 1
-	local note = Audio.generate_note(self.combo, self.character.name)
+	local note = Audio.generate_character_note(self.combo, self.character.name)
 	Audio.play(Assets.sfx.character.clear[self.character.id], -2, note)
 end
 
 function Grid:queue_surprises(num_surprises)
-	self.surprises_queue = self.surprises_queue + num_surprises
+	self.pending_surprises = self.pending_surprises + num_surprises
 end
 
 function Grid:reset_combo()
@@ -679,26 +684,26 @@ function Grid:draw_board()
 	end
 end
 
-function Grid:gen_next_binding()
-	local binding = Runes.gen_binding_rune()
+function Grid:generate_next_pill()
+	local pill = Runes.generate_pill_runes()
 
-	self.next_binding = {
-		rune1 = binding.rune1,
-		rune2 = binding.rune2,
-		x = self.next_binding_x,
-		y = self.next_binding_y,
+	self.next_pill = {
+		rune1 = pill.rune1,
+		rune2 = pill.rune2,
+		x = self.next_pill_x,
+		y = self.next_pill_y,
 		rotation = 0,
 	}
 end
 
-function Grid:draw_next_binding()
-	local next = self.next_binding
-	if not next then
+function Grid:draw_next_pill()
+	local next_pill = self.next_pill
+	if not next_pill then
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_binding_xy(next)
-	local spr1, spr2 = self:get_binding_spr(next)
+	local x1, y1, x2, y2 = self:get_pill_xy(next_pill)
+	local spr1, spr2 = self:get_pill_sprites(next_pill)
 
 	spr(spr1, self:cx(x1), self:cy(y1), 0)
 	spr(spr2, self:cx(x2), self:cy(y2), 0)
@@ -720,7 +725,7 @@ function Grid:draw_target()
 	end
 end
 
-function Grid:spawn_binding(binding)
+function Grid:spawn_pill(pill)
 	local spawnx = 0
 	if self.w % 2 == 0 then
 		spawnx = self.w / 2 - 1
@@ -733,9 +738,9 @@ function Grid:spawn_binding(binding)
 	if game_over then
 		self:trigger_game_over()
 	else
-		self.active_binding = {
-			rune1 = binding.rune1,
-			rune2 = binding.rune2,
+		self.active_pill = {
+			rune1 = pill.rune1,
+			rune2 = pill.rune2,
 			x = spawnx,
 			y = spawny,
 			rotation = 0,
@@ -748,7 +753,8 @@ function Grid:trigger_game_over()
 	self.game_over = true
 end
 
-function Grid:spawn_next_surprises(num_surprises)
+function Grid:spawn_queued_surprises()
+	local num_surprises = self.pending_surprises
 	if num_surprises > self.w - 1 then
 		num_surprises = self.w - 1
 	end
@@ -766,18 +772,20 @@ function Grid:spawn_next_surprises(num_surprises)
 
 		local color = Runes.get_random_color()
 		local cell = {
-			type = "half",
+			type = CELL_TYPES.HALF,
 			color = color,
 			spr = Assets.sprites.pieces.halves[color],
 			spawnx = spawnx,
 			spawny = spawny,
 		}
-		table.insert(self.surprises_drawn, cell)
+		table.insert(self.queued_surprises, cell)
 	end
+
+	self.pending_surprises = 0
 end
 
-function Grid:trigger_surprises_grav()
-	for i, v in ipairs(self.surprises_drawn) do
+function Grid:drop_queued_surprises()
+	for _, v in ipairs(self.queued_surprises) do
 		local cell = self.board[v.spawny][v.spawnx]
 		if not cell then
 			cell = {
@@ -787,61 +795,62 @@ function Grid:trigger_surprises_grav()
 			}
 		end
 		self.board[v.spawny][v.spawnx] = cell
-		self.surprises_drawn = {}
 	end
+
+	self.queued_surprises = {}
 
 	self.cascade_trigger = true
 end
 
 function Grid:rotate_clockwise()
-	if self.active_binding == nil then
+	if self.active_pill == nil then
 		return
 	end
 
-	local next_rotation = (self.active_binding.rotation + 1) % 4
-	local x1, y1, x2, y2 = self:get_binding_xy(self.active_binding, next_rotation)
+	local next_rotation = (self.active_pill.rotation + 1) % 4
+	local x1, y1, x2, y2 = self:get_pill_xy(self.active_pill, next_rotation)
 	if self:available(x1, y1) and self:available(x2, y2) then
-		self.active_binding.rotation = next_rotation
+		self.active_pill.rotation = next_rotation
 	else
 		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
 function Grid:rotate_counterclockwise()
-	if self.active_binding == nil then
+	if self.active_pill == nil then
 		return
 	end
 
-	local next_rotation = (self.active_binding.rotation + 3) % 4
-	local x1, y1, x2, y2 = self:get_binding_xy(self.active_binding, next_rotation)
+	local next_rotation = (self.active_pill.rotation + 3) % 4
+	local x1, y1, x2, y2 = self:get_pill_xy(self.active_pill, next_rotation)
 	if self:available(x1, y1) and self:available(x2, y2) then
-		self.active_binding.rotation = next_rotation
+		self.active_pill.rotation = next_rotation
 	else
 		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
 function Grid:move_left()
-	if self.active_binding == nil then
+	if self.active_pill == nil then
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_binding_xy()
+	local x1, y1, x2, y2 = self:get_pill_xy()
 	if self:available(x1 - 1, y1) and self:available(x2 - 1, y2) then
-		self.active_binding.x = self.active_binding.x - 1
+		self.active_pill.x = self.active_pill.x - 1
 	else
 		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
 function Grid:move_right()
-	if self.active_binding == nil then
+	if self.active_pill == nil then
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_binding_xy()
+	local x1, y1, x2, y2 = self:get_pill_xy()
 	if self:available(x1 + 1, y1) and self:available(x2 + 1, y2) then
-		self.active_binding.x = self.active_binding.x + 1
+		self.active_pill.x = self.active_pill.x + 1
 	else
 		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
@@ -879,8 +888,8 @@ function Grid:cycle_target()
 	end
 end
 
-function Grid:drop_binding()
-	if self.active_binding == nil then
+function Grid:drop_pill()
+	if self.active_pill == nil then
 		return
 	end
 
@@ -888,8 +897,8 @@ function Grid:drop_binding()
 
 	-- mark tiles that need to be animated (drop trail)
 	-- current position
-	local start_x1, start_y1, start_x2, start_y2 = self:get_binding_xy()
-	local rotation = self.active_binding.rotation
+	local start_x1, start_y1, start_x2, start_y2 = self:get_pill_xy()
+	local rotation = self.active_pill.rotation
 
 	local grav_possible, end_x1, end_y1, end_x2, end_y2 = self:grav()
 	while grav_possible do
@@ -931,32 +940,32 @@ function Grid:available(x, y)
 	return false
 end
 
--- get_binding_xy checks the binding rotation and returns x,y position for both sides of the pill.
+-- get_pill_xy checks the pill rotation and returns x,y position for both sides of the pill.
 -- returns x1, y1, x2, y2
-function Grid:get_binding_xy(binding, rotation)
-	binding = binding or self.active_binding
-	rotation = rotation or binding.rotation
+function Grid:get_pill_xy(pill, rotation)
+	pill = pill or self.active_pill
+	rotation = rotation or pill.rotation
 	if rotation == 0 then
-		return binding.x, binding.y, binding.x + 1, binding.y
+		return pill.x, pill.y, pill.x + 1, pill.y
 	elseif rotation == 1 then
-		return binding.x, binding.y - 1, binding.x, binding.y
+		return pill.x, pill.y - 1, pill.x, pill.y
 	elseif rotation == 2 then
-		return binding.x + 1, binding.y, binding.x, binding.y
+		return pill.x + 1, pill.y, pill.x, pill.y
 	elseif rotation == 3 then
-		return binding.x, binding.y, binding.x, binding.y - 1
+		return pill.x, pill.y, pill.x, pill.y - 1
 	end
 
 	return nil, nil, nil, nil
 end
 
-function Grid:get_binding_spr(binding)
-	binding = binding or self.active_binding
-	if not binding then
-		Console.log("error: binding not found")
+function Grid:get_pill_sprites(pill)
+	pill = pill or self.active_pill
+	if not pill then
+		Console.log("error: pill not found")
 		return
 	end
 
-	local rotation = (binding.rotation or 0) % 4
+	local rotation = (pill.rotation or 0) % 4
 	local dir = {
 		[0] = { "W", "E" },
 		[1] = { "N", "S" },
@@ -965,32 +974,32 @@ function Grid:get_binding_spr(binding)
 	}
 	local pair = dir[rotation]
 
-	local spr1 = binding.rune1[pair[1]]
-	local spr2 = binding.rune2[pair[2]]
+	local spr1 = pill.rune1[pair[1]]
+	local spr2 = pill.rune2[pair[2]]
 	return spr1, spr2
 end
 
-function Grid:draw_static_bindings()
-	for _, binding in ipairs(self.static_bindings) do
-		if binding == nil then
+function Grid:draw_static_pills()
+	for _, pill in ipairs(self.static_pills) do
+		if pill == nil then
 			Console.log("static pill is nil")
 			return
 		end
 
-		local x1, y1, x2, y2 = self:get_binding_xy(binding)
-		local spr1, spr2 = self:get_binding_spr(binding)
+		local x1, y1, x2, y2 = self:get_pill_xy(pill)
+		local spr1, spr2 = self:get_pill_sprites(pill)
 		spr(spr1, x1 * self.cell_size, y1 * self.cell_size, 0)
 		spr(spr2, x2 * self.cell_size, y2 * self.cell_size, 0)
 	end
 end
 
-function Grid:draw_active_binding()
-	if self.active_binding == nil then
+function Grid:draw_active_pill()
+	if self.active_pill == nil then
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_binding_xy()
-	local spr1, spr2 = self:get_binding_spr()
+	local x1, y1, x2, y2 = self:get_pill_xy()
+	local spr1, spr2 = self:get_pill_sprites()
 
 	spr(spr1, self:cx(x1), self:cy(y1), 0)
 	spr(spr2, self:cx(x2), self:cy(y2), 0)
@@ -1002,9 +1011,9 @@ function Grid:draw_halves()
 	end
 end
 
-function Grid:draw_surprises_queue()
-	for i, v in ipairs(self.surprises_drawn) do
-		spr(Assets.sprites.pieces.surprise_queued[v.color], self:cx(v.spawnx), self:cy(v.spawny - 1), 0)
+function Grid:draw_queued_surprises()
+	for _, v in ipairs(self.queued_surprises) do
+		spr(Assets.sprites.pieces.queued_surprise[v.color], self:cx(v.spawnx), self:cy(v.spawny - 1), 0)
 	end
 end
 
@@ -1025,11 +1034,11 @@ function Grid:grav_halves()
 			end
 
 			if self.board[y] ~= nil and self.board[y][x] ~= nil then
-				if self.board[y][x].type == "half" then
+				if self.board[y][x].type == CELL_TYPES.HALF then
 					local half = self.board[y][x]
 					if self:available(x, y + 1) then
 						self.board[y + 1][x] = {
-							type = "half",
+							type = CELL_TYPES.HALF,
 							color = half.color,
 							spr = half.spr,
 						}
@@ -1038,19 +1047,19 @@ function Grid:grav_halves()
 					else
 						-- Audio.play(SFX.LAND)
 						self.board[y][x] = {
-							type = "half",
+							type = CELL_TYPES.HALF,
 							color = half.color,
 							spr = half.spr,
 						}
 					end
-				elseif self.board[y][x].type == "binding" then
-					local binding = self.board[y][x]
-					local oh_pos = binding.other_half
-					local is_available_binding = self:available(x, y + 1)
+				elseif self.board[y][x].type == CELL_TYPES.PILL then
+					local pill = self.board[y][x]
+					local oh_pos = pill.other_half
+					local is_pill_available = self:available(x, y + 1)
 					local is_available_oh = self:available(oh_pos.x, oh_pos.y + 1)
 
 					if oh_pos.x == x then
-						if is_available_binding then
+						if is_pill_available then
 							self.board[y + 1][x] = table.deep_copy(self.board[y][x])
 							self.board[y + 1][x].other_half.y = oh_pos.y + 1
 							self.board[oh_pos.y + 1][oh_pos.x] = table.deep_copy(self.board[oh_pos.y][oh_pos.x])
@@ -1059,7 +1068,7 @@ function Grid:grav_halves()
 							already_moved[oh_pos.y][oh_pos.x] = true
 							still_falling = true
 						end
-					elseif is_available_binding and is_available_oh then
+					elseif is_pill_available and is_available_oh then
 						self.board[y + 1][x] = table.deep_copy(self.board[y][x])
 						self.board[y + 1][x].other_half.y = oh_pos.y + 1
 						self.board[y][x] = nil
@@ -1081,43 +1090,43 @@ function Grid:grav_halves()
 	return still_falling
 end
 
--- grav checks whether active binding can go one position down.
+-- grav checks whether the active pill can go one position down.
 -- if it can, it moves to y+1 from the current position.
--- it it cannot, it doesn't move, and it's marked as static (it's no longer active binding).
--- the function returns true if the movement was possible (and the active binding remains active).
--- the function returns false if the movement was not possible and the binding became static.
+-- it it cannot, it doesn't move, and it's marked as static (it's no longer the active pill).
+-- the function returns true if the movement was possible (and the active pill remains active).
+-- the function returns false if the movement was not possible and the pill became static.
 -- also returns the position where the pill landed, assuming it has landed (the movement was not possible)
 function Grid:grav()
-	local active = self.active_binding
+	local active = self.active_pill
 	if active == nil then
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_binding_xy()
+	local x1, y1, x2, y2 = self:get_pill_xy()
 
 	if self:available(x1, y1 + 1) and self:available(x2, y2 + 1) then
 		active.y = active.y + 1
 
 		return true
 	else
-		self:mark_active_binding_as_static()
+		self:mark_active_pill_as_static()
 		return false, x1, y1, x2, y2
 	end
 end
 
-function Grid:mark_active_binding_as_static()
-	if self.active_binding == nil then
-		Console.log("cannot mark binding as static, active binding not found")
+function Grid:mark_active_pill_as_static()
+	if self.active_pill == nil then
+		Console.log("cannot mark pill as static, active pill not found")
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_binding_xy()
+	local x1, y1, x2, y2 = self:get_pill_xy()
 
-	local spr1, spr2 = self:get_binding_spr()
+	local spr1, spr2 = self:get_pill_sprites()
 	if y1 >= 0 then
 		self.board[y1][x1] = {
-			type = "binding",
-			color = self.active_binding.rune1.name,
+			type = CELL_TYPES.PILL,
+			color = self.active_pill.rune1.name,
 			spr = spr1,
 			other_half = {
 				x = x2,
@@ -1127,8 +1136,8 @@ function Grid:mark_active_binding_as_static()
 	end
 	if y2 >= 0 then
 		self.board[y2][x2] = {
-			type = "binding",
-			color = self.active_binding.rune2.name,
+			type = CELL_TYPES.PILL,
+			color = self.active_pill.rune2.name,
 			spr = spr2,
 			other_half = {
 				x = x1,
@@ -1137,7 +1146,7 @@ function Grid:mark_active_binding_as_static()
 		}
 	end
 
-	self.active_binding = nil
+	self.active_pill = nil
 end
 
 function Grid:print()
@@ -1201,10 +1210,10 @@ function Grid:draw_border()
 	end
 
 	-- around next pill
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x), self:cy(self.next_binding_y + 1))
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y + 1))
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x), self:cy(self.next_binding_y - 1))
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y - 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x), self:cy(self.next_pill_y + 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x + 1), self:cy(self.next_pill_y + 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x), self:cy(self.next_pill_y - 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x + 1), self:cy(self.next_pill_y - 1))
 end
 
 function Grid:draw_border_deprecated()
@@ -1336,7 +1345,7 @@ function Game.draw_params()
 	end
 end
 
-function Game.assign_grid_height()
+function Game.get_grid_height()
 	-- when there are more than 2 players, grid is smaller and character is drawn on top
 	if Game.players <= 2 then
 		return 15
@@ -1344,7 +1353,7 @@ function Game.assign_grid_height()
 	return 12
 end
 
-function Game.assign_py()
+function Game.get_grid_y()
 	-- when there are more than 2 players, grid is smaller and character is drawn on top
 	if Game.players <= 2 then
 		return 1
@@ -1352,7 +1361,7 @@ function Game.assign_py()
 	return 4
 end
 
-function Game.assign_grid_width()
+function Game.get_grid_width()
 	if Game.players == 1 then
 		return 9
 	elseif Game.players == 2 then
@@ -1362,13 +1371,13 @@ function Game.assign_grid_width()
 	elseif Game.players == 4 then
 		return 6
 	else
-		Console.log("unexpected number of players during assign_grid_width")
+		Console.log("unexpected number of players during get_grid_width")
 	end
 end
 
 function Grid:log_state()
 	Console.clear()
-	Console.log(self.active_binding)
+	Console.log(self.active_pill)
 	Console.log(self.combo)
 	Console.log(self.board)
 	Console.log(self.game_over)
@@ -1376,16 +1385,15 @@ function Grid:log_state()
 end
 
 function Grid:eval()
-	if self.active_binding == nil then
-		if #self.surprises_drawn > 0 then
-			self:trigger_surprises_grav()
+	if self.active_pill == nil then
+		if #self.queued_surprises > 0 then
+			self:drop_queued_surprises()
 			return
 		end
 	end
 
-	if self.surprises_queue > 0 then
-		self:spawn_next_surprises(self.surprises_queue)
-		self.surprises_queue = 0
+	if self.pending_surprises > 0 then
+		self:spawn_queued_surprises()
 		return
 	end
 
@@ -1406,20 +1414,20 @@ function Grid:eval()
 		return
 	end
 
-	if self.active_binding == nil then
+	if self.active_pill == nil then
 		if self.combo > 1 then
 			self:send_surprises(self.combo, self.target)
-		elseif self.next_binding ~= nil then
-			self:spawn_binding(self.next_binding)
-			self.next_binding = nil
+		elseif self.next_pill ~= nil then
+			self:spawn_pill(self.next_pill)
+			self.next_pill = nil
 		end
 		self:reset_combo()
 	else
 		self:grav()
 	end
 
-	if self.next_binding == nil then
-		self:gen_next_binding()
+	if self.next_pill == nil then
+		self:generate_next_pill()
 	end
 end
 
@@ -1549,7 +1557,7 @@ function Grid:remove_marked()
 	for _, pos in ipairs(to_convert_diff) do
 		local cell = self.board[pos.y][pos.x]
 		if cell then
-			cell.type = "half"
+			cell.type = CELL_TYPES.HALF
 			cell.spr = Assets.sprites.pieces.halves[cell.color]
 		end
 	end
@@ -1608,7 +1616,7 @@ end
 
 function Menu:draw()
 	for i, option in ipairs(self.options) do
-		self:print_item(option.key, i == self.selected_option, self:get_offset(i))
+		self:print_item(option.label, i == self.selected_option, self:get_offset(i))
 	end
 end
 
@@ -1656,25 +1664,25 @@ local players_menu
 players_menu = Menu:new({
 	options = {
 		{
-			key = "2 PLAYERS",
+			label = "2 PLAYERS",
 			callback = function()
 				Game.setup_game(2)
 			end,
 		},
 		{
-			key = "3 PLAYERS",
+			label = "3 PLAYERS",
 			callback = function()
 				Game.setup_game(3)
 			end,
 		},
 		{
-			key = "4 PLAYERS",
+			label = "4 PLAYERS",
 			callback = function()
 				Game.setup_game(4)
 			end,
 		},
 		{
-			key = "BACK",
+			label = "BACK",
 			callback = function()
 				Game.menu = main_menu
 			end,
@@ -1685,7 +1693,7 @@ players_menu = Menu:new({
 main_menu = Menu:new({
 	options = {
 		{
-			key = "VS GAME",
+			label = "VS GAME",
 			callback = function()
 				Game.menu = players_menu
 				Game.mode = MODES.VS
@@ -1715,17 +1723,20 @@ function Grid:update()
 	end
 	if btnp(keys.SUPER) then
 		self:cycle_target()
+
+		-- Game.send_surprises(2, 3)
+		-- for testing
 	end
 
 	local effective_interval = self.interval
-	if btn(keys.DOWN) and self.active_binding ~= nil then
+	if btn(keys.DOWN) and self.active_pill ~= nil then
 		effective_interval = self.interval / 10
-	elseif self.active_binding == nil then
+	elseif self.active_pill == nil then
 		effective_interval = self.interval / 5
 	end
 
 	if btnp(keys.UP) then
-		self:drop_binding()
+		self:drop_pill()
 	end
 
 	if t % effective_interval == 0 then
@@ -1789,18 +1800,18 @@ end
 function Grid:draw()
 	self:draw_border()
 	self:draw_board()
-	self:draw_static_bindings()
-	self:draw_active_binding()
+	self:draw_static_pills()
+	self:draw_active_pill()
 	self:draw_halves()
-	self:draw_surprises_queue()
+	self:draw_queued_surprises()
 	self:draw_character(t)
 	self:draw_score()
-	self:draw_next_binding()
+	self:draw_next_pill()
 	self:draw_target()
 end
 
 function TIC()
-	Audio.playBGM(Assets.music.fever)
+	Audio.play_bgm(Assets.music.fever)
 	Console.update()
 	cls(0)
 
