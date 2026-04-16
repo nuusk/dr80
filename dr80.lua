@@ -180,6 +180,7 @@ local Assets = {
 			},
 			cloud = 194,
 			cloud_raining = { 196, 198, 200, 202, 204 },
+			spawn_animation_temp = { 409, 408, 407, 406, 407, 408, 409 },
 		},
 		characters = {
 			[1] = {
@@ -350,6 +351,7 @@ function Grid:new(player)
 	g.h = Game.get_grid_height()
 	g.w = Game.get_grid_width()
 	g.py = Game.get_grid_y()
+	g.spawn_animation_finished = true
 	g.target = TARGETS.LEADER
 	if Game.players <= 2 then
 		g.px = (player - 1) * (g.w + 4) + 1
@@ -697,6 +699,9 @@ function Grid:generate_next_pill()
 end
 
 function Grid:draw_next_pill()
+	if self.game_over then
+		return
+	end
 	local next_pill = self.next_pill
 	if not next_pill then
 		return
@@ -710,6 +715,9 @@ function Grid:draw_next_pill()
 end
 
 function Grid:draw_target()
+	if self.game_over then
+		return
+	end
 	local cx = self:cx(self.target_x)
 	local cy = self:cy(self.target_y)
 	local cx2 = self:cx(self.target_selected_x)
@@ -1180,6 +1188,65 @@ function Grid:cy(y)
 	return (y + self.py) * self.cell_size
 end
 
+-- TODO: think of some nicer animation and add animation to viruses as well
+function Grid:spawn_grid(t)
+	if self.grid_spawn_start_t == nil then
+		self.grid_spawn_start_t = t
+	end
+
+	local elapsed = (t - self.grid_spawn_start_t) / 3
+	local cx0 = self.w / 2
+	local cy0 = self.h / 2
+	local frames = Assets.sprites.fx.spawn_animation_temp
+	local settle_delay = #frames - 1
+
+	for y = 0, self.h + 1, 1 do
+		local cy = self:cy(y - 1)
+		for x = 0, self.w + 1, 1 do
+			local ok = false
+			local transparent = false
+			if y == self.h + 1 then
+				ok = true
+			end
+			if y == 0 then
+				ok = true
+				if x > 1 and x < self.w then
+					transparent = true
+				end
+			end
+			if x == 0 or x == self.w + 1 then
+				ok = true
+			end
+			if ok ~= true then
+				goto continue
+			end
+
+			local cx = self:cx(x - 1)
+			local dx = x - cx0
+			local dy = y - cy0
+			local distance = math.sqrt(dx * dx + dy * dy)
+			local wave_start = distance * 1.5 + y * 0.2
+			local phase = elapsed - wave_start
+
+			if phase >= 0 then
+				local base = Assets.sprites.ui.background.single
+				if transparent == true then
+					base = Assets.sprites.ui.background.single_transparent
+				end
+				spr(base, cx, cy, 0)
+
+				local frame = math.floor(phase) + 1
+				if frame <= #frames then
+					local effect = frames[#frames - frame + 1]
+					spr(effect, cx, cy, 0)
+				end
+			end
+
+			::continue::
+		end
+	end
+end
+
 function Grid:draw_border()
 	for y = 0, self.h + 1 do
 		local cy = self:cy(y - 1)
@@ -1214,41 +1281,6 @@ function Grid:draw_border()
 	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x + 1), self:cy(self.next_pill_y + 1))
 	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x), self:cy(self.next_pill_y - 1))
 	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x + 1), self:cy(self.next_pill_y - 1))
-end
-
-function Grid:draw_border_deprecated()
-	for y = 0, self.h - 1 do
-		local cy = self:cy(y)
-		for x = 0, self.w - 1 do
-			local cx = self:cx(x)
-
-			if y == 0 then
-				if x == 0 then
-					spr(Assets.sprites.ui.border.top_left, cx, cy, 0)
-				elseif x == self.w - 1 then
-					spr(Assets.sprites.ui.border.top_right, cx, cy, 0)
-				else
-					spr(Assets.sprites.ui.border.top, cx, cy, 0)
-				end
-			elseif y == self.h - 1 then
-				if x == 0 then
-					spr(Assets.sprites.ui.border.bottom_left, cx, cy, 0)
-				elseif x == self.w - 1 then
-					spr(Assets.sprites.ui.border.bottom_right, cx, cy, 0)
-				else
-					spr(Assets.sprites.ui.border.bottom, cx, cy, 0)
-				end
-			else
-				if x == 0 then
-					spr(Assets.sprites.ui.border.left, cx, cy, 0)
-				elseif x == self.w - 1 then
-					spr(Assets.sprites.ui.border.right, cx, cy, 0)
-				else
-					spr(Assets.sprites.ui.border.center, cx, cy, 0)
-				end
-			end
-		end
-	end
 end
 
 -- Grid manager end --
@@ -1330,6 +1362,12 @@ end
 function Game.animate_grids()
 	for _, grid in pairs(Game.grids) do
 		grid:animate_all()
+	end
+end
+
+function Game.spawn_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:spawn_grid(t)
 	end
 end
 
@@ -1822,9 +1860,13 @@ function TIC()
 		Game.update_params()
 		Game.draw_params()
 	elseif Game.scene == SCENES.GAME then
-		Game.update_grids()
-		Game.draw_grids()
-		Game.animate_grids()
+		if t > 100 then
+			Game.update_grids()
+			Game.draw_grids()
+			Game.animate_grids()
+		else
+			Game.spawn_grids()
+		end
 	end
 
 	t = t + 1
