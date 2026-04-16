@@ -99,52 +99,112 @@ function Console.draw()
 	end
 end
 
--- Global variables --
-
-local SFX = {
-	LAND = 0,
-	MOVE = 1,
-	ROTATE = 2,
-	CLEAR = 3,
-	OVERFLOW = 4, -- TODO: remove
-	INVALID = 5, -- TODO: remove
-	DROP = 6, -- TODO: remove
+local Assets = {
+	music = {
+		flora = 0,
+		fever = 1,
+	},
+	sfx = {
+		common = {
+			land = 0,
+			move = 1,
+			rotate = 2,
+			clear = 3,
+			overflow = 4,
+			invalid = 5,
+			drop = 6,
+		},
+		character = {
+			overflow = { 16, 17, 18, 19 },
+			drop = { 20, 21, 22, 23 },
+			clear = { 24, 25, 26, 27 },
+			invalid = { 28, 29, 30, 31 },
+		},
+	},
+	sprites = {
+		ui = {
+			menu_cursor = 352,
+			faces = { 0, 48, 192, 208 },
+			border = {
+				top_left = 32,
+				top = 33,
+				top_right = 34,
+				left = 48,
+				center = 49,
+				right = 50,
+				bottom_left = 64,
+				bottom = 65,
+				bottom_right = 66,
+			},
+			background = {
+				single = 503,
+				single_transparent = 474,
+				square_2x2 = 270,
+			},
+		},
+		pieces = {
+			runes = {
+				{ name = "R", W = 490, E = 491, N = 492, S = 508 },
+				{ name = "S", W = 506, E = 507, N = 493, S = 509 },
+				{ name = "E", W = 488, E = 489, N = 494, S = 510 },
+			},
+			stones = {
+				R = 256,
+				S = 272,
+				E = 288,
+			},
+			halves = {
+				R = 486,
+				S = 487,
+				E = 502,
+			},
+			surprise_queued = {
+				R = 401,
+				S = 407,
+				E = 403,
+			},
+		},
+		fx = {
+			drop_trail = {
+				horizontal = { 398, 382, 366, 350, 334 },
+				vertical = { 396, 380, 397, 381, 365 },
+			},
+			ghost_pill = {
+				horizontal = { 478, 462, 446 },
+				vertical = { 459, 460, 461 },
+			},
+			disappear = {
+				R = { 400, 401, 402, 409 },
+				S = { 406, 407, 408, 409 },
+				E = { 403, 404, 405, 409 },
+			},
+			cloud = 194,
+			cloud_raining = { 196, 198, 200, 202, 204 },
+		},
+		characters = {
+			[1] = {
+				name = "ruby",
+				idle = { 0, 2, 4, 6, 8 },
+				game_over = { 10 },
+			},
+			[2] = {
+				name = "opal",
+				idle = { 48, 50, 52, 54, 56 },
+				game_over = { 48 },
+			},
+			[3] = {
+				name = "amethyst",
+				idle = { 96, 98, 100, 102, 104 },
+				game_over = { 106 },
+			},
+			[4] = {
+				name = "pearl",
+				idle = { 144, 146, 148, 150, 152 },
+				game_over = { 154 },
+			},
+		},
+	},
 }
-
-local SFX_OVERFLOW_PER_CHARACTER = {
-	16,
-	17,
-	18,
-	19,
-}
-
-local SFX_DROP_PER_CHARACTER = {
-	20,
-	21,
-	22,
-	23,
-}
-
-local SFX_CLEAR_PER_CHARACTER = {
-	24,
-	25,
-	26,
-	27,
-}
-
-local SFX_INVALID_PER_CHARACTER = {
-	28,
-	29,
-	30,
-	31,
-}
-
-local TRACK = {
-	FLORA = 0,
-	FEVER = 1,
-}
-
--- Global variables end --
 
 local SCENES = {
 	MENU = 0,
@@ -271,50 +331,10 @@ local TARGETS = {
 	RANDOM = 5,
 }
 
-local FACES = {
-	PLAYER_1 = 0,
-	PLAYER_2 = 48,
-	PLAYER_3 = 192,
-	PLAYER_4 = 208,
-}
---
-
 -- Grid manager --
-
-local BORDER = {
-	TOPLEFT = 32,
-	TOP = 33,
-	TOPRIGHT = 34,
-	LEFT = 48,
-	CENTER = 49,
-	RIGHT = 50,
-	BOTTOMLEFT = 64,
-	BOTTOM = 65,
-	BOTTOMRIGHT = 66,
-}
-
-local BACKGROUND = {
-	SINGLE = 503,
-	SINGLE_TRANSPARENT = 474,
-	SQUARE_2x2 = 270,
-}
 
 local Grid = {
 	cell_size = 8,
-	level = 9,
-	num_stones = 0,
-	next_binding = nil,
-	static_bindings = {},
-	active_binding = nil,
-	halves = {},
-	drop_phase = false,
-	board = {},
-	interval = 60,
-	is_paused = false,
-	character = nil,
-	combo = 0,
-	surprises_queue = 0,
-	game_over = false,
 }
 Grid.__index = Grid
 
@@ -352,17 +372,23 @@ function Grid:new(player)
 		g.target_selected_y = -4
 	end
 
-	g.interval = Grid.interval
-	g.stones = Grid.stones
-
+	g.cell_size = Grid.cell_size
+	g.level = 9
+	g.num_stones = 0
+	g.next_binding = nil
 	g.static_bindings = {}
 	g.active_binding = nil
 	g.halves = {}
 	g.drop_phase = false
 	g.board = {}
+	g.interval = 60
 	g.is_paused = false
 	g.character = nil
-	g.next_binding = nil
+	g.combo = 0
+	g.surprises_queue = 0
+	g.surprises_drawn = {}
+	g.game_over = false
+	g.cascade_trigger = false
 
 	g.animation_queue = {}
 
@@ -372,64 +398,6 @@ function Grid:new(player)
 
 	return g
 end
-
-local ANIMATION_DROP_TRAIL_HORIZONTAL = { -- w:2, h:1
-	398,
-	382,
-	366,
-	350,
-	334,
-}
-
-local ANIMATION_GHOST_PILL_HORIZONTAL = { -- w:2, h:1
-	478,
-	462,
-	446,
-}
-
-local ANIMATION_DROP_TRAIL_VERTICAL = { -- w:1, h:1
-	396,
-	380,
-	397,
-	381,
-	365,
-}
-
-local ANIMATION_GHOST_PILL_VERTICAL = { -- w:1, h:2
-	459,
-	460,
-	461,
-}
-
-local ANIMATION_DISAPPEARING_PILL_SINGLE_RED = {
-	400,
-	401,
-	402,
-	409,
-}
-
-local ANIMATION_DISAPPEARING_PILL_SINGLE_BLUE = {
-	403,
-	404,
-	405,
-	409,
-}
-
-local ANIMATION_DISAPPEARING_PILL_SINGLE_YELLOW = {
-	406,
-	407,
-	408,
-	409,
-}
-
-local CLOUD_SPRITE = 194
-local ANIMATION_CLOUD_RAINING = { -- w:2, h: 1
-	196,
-	198,
-	200,
-	202,
-	204,
-}
 
 local ANIMATIONS = {
 	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
@@ -465,30 +433,19 @@ function Animation:new(name, options)
 		animation.num_frames = 20
 		animation.x = options.x
 		animation.y = options.y
-		if options.color == "R" then
-			animation.sprites = ANIMATION_DISAPPEARING_PILL_SINGLE_RED
-		elseif options.color == "S" then
-			animation.sprites = ANIMATION_DISAPPEARING_PILL_SINGLE_YELLOW
-		elseif options.color == "E" then
-			animation.sprites = ANIMATION_DISAPPEARING_PILL_SINGLE_BLUE
-		end
+		animation.sprites = Assets.sprites.fx.disappear[options.color]
 	end
 
 	self.animation_index = self.animation_index + 1
 	return animation
 end
 
-local RUNES = {
-	{ name = "R", W = 490, E = 491, N = 492, S = 508 },
-	{ name = "S", W = 506, E = 507, N = 493, S = 509 },
-	{ name = "E", W = 488, E = 489, N = 494, S = 510 },
-}
-
 local Runes = {}
 
 function Runes.gen_binding_rune()
-	local rune1 = RUNES[math.random(1, #RUNES)]
-	local rune2 = RUNES[math.random(1, #RUNES)]
+	local runes = Assets.sprites.pieces.runes
+	local rune1 = runes[math.random(1, #runes)]
+	local rune2 = runes[math.random(1, #runes)]
 	return { rune1 = rune1, rune2 = rune2 }
 end
 
@@ -497,73 +454,6 @@ function Runes.get_random_color()
 	local i = math.random(#bag)
 	return bag[i]
 end
-
-local STONES_SPR = {
-	R = 256,
-	S = 272,
-	E = 288,
-}
-
-local HALVES_SPR = {
-	R = 486,
-	S = 487,
-	E = 502,
-}
-
-local CHAR_1_ANIMATION_IDLE = {
-	0,
-	2,
-	4,
-	6,
-	8,
-}
-
-local CHAR_2_ANIMATION_IDLE = {
-	48,
-	50,
-	52,
-	54,
-	56,
-}
-
-local CHAR_3_ANIMATION_IDLE = {
-	96,
-	98,
-	100,
-	102,
-	104,
-}
-
-local CHAR_4_ANIMATION_IDLE = {
-	144,
-	146,
-	148,
-	150,
-	152,
-}
-
-local ANIMATION_GAME_OVER_PER_CHAR = {
-	{ 10 },
-	{ 48 },
-	{ 106 },
-	{ 154 },
-}
-
-local CHAR_1_ANIMATION_GAME_OVER = {
-	10,
-}
-
-local CHAR_2_ANIMATION_GAME_OVER = {
-	48,
-}
-
-local CHAR_3_ANIMATION_GAME_OVER = {
-	106,
-}
-
-local CHAR_4_ANIMATION_GAME_OVER = {
-	154,
-}
 
 function Grid:generate_board()
 	for y = 0, self.h - 1, 1 do
@@ -575,34 +465,21 @@ function Grid:generate_board()
 end
 
 function Grid:generate_character(index)
+	local asset = Assets.sprites.characters[index]
 	self.character = {
 		id = index,
+		name = asset.name,
 		state = "idle",
 		anim_idle = {
 			cur = 0,
-			sprites = {},
+			sprites = asset.idle,
 		},
 		anim_game_over = {
-			sprites = {},
+			sprites = asset.game_over,
 		},
 		w = 2,
 		h = 3,
 	}
-	if index == 1 then
-		self.character.name = "ruby" -- TODO: remove?
-		self.character.anim_idle.sprites = CHAR_1_ANIMATION_IDLE
-	elseif index == 2 then
-		self.character.name = "opal" -- TODO: remove?
-		self.character.anim_idle.sprites = CHAR_2_ANIMATION_IDLE
-	elseif index == 3 then
-		self.character.name = "amethyst" -- TODO: remove?
-		self.character.anim_idle.sprites = CHAR_3_ANIMATION_IDLE
-	elseif index == 4 then
-		self.character.name = "pearl" -- TODO: remove?
-		self.character.anim_idle.sprites = CHAR_4_ANIMATION_IDLE
-	end
-
-	self.character.anim_game_over.sprites = ANIMATION_GAME_OVER_PER_CHAR[index]
 end
 
 function Grid:draw_level()
@@ -616,13 +493,13 @@ function Grid:draw_score()
 	local cx = self:cx(self.score_x)
 	local cy = self:cy(self.score_y - 1)
 
-	spr(BACKGROUND.SQUARE_2x2, cx, cy, 0, 1, 0, 0, 2, 2)
+	spr(Assets.sprites.ui.background.square_2x2, cx, cy, 0, 1, 0, 0, 2, 2)
 
 	-- local movement offset = 5
 	if self.num_stones >= 10 then
 		offset = 2
 	end
-	print(self.num_stones, self:cx(self.score_x) + offset, self:cy(self.score_y) - (Grid.cell_size // 4), 8, true)
+	print(self.num_stones, self:cx(self.score_x) + offset, self:cy(self.score_y) - (self.cell_size // 4), 8, true)
 end
 
 function Grid:draw_character(t)
@@ -638,9 +515,10 @@ function Grid:draw_character(t)
 	if self.game_over == true then
 		spr(char.anim_game_over.sprites[1], cx, cy, 0, 1, 0, 0, char.w, char.h)
 		local gy = self:cy(self.character_y - 2)
-		spr(CLOUD_SPRITE, cx, gy, 0, 1, 0, 0, 2, 1)
-		local i = (t // 8) % #ANIMATION_CLOUD_RAINING + 1
-		local frame = ANIMATION_CLOUD_RAINING[i]
+		spr(Assets.sprites.fx.cloud, cx, gy, 0, 1, 0, 0, 2, 1)
+		local rain = Assets.sprites.fx.cloud_raining
+		local i = (t // 8) % #rain + 1
+		local frame = rain[i]
 
 		local ry = self:cy(self.character_y - 1)
 		spr(frame, cx, ry, 0, 1, 0, 0, 2, 1)
@@ -673,29 +551,32 @@ function Grid:animate_one(index, animation)
 
 		local trail_offset = 0
 		if animation.start_x1 == animation.start_x2 then
-			local gp_frame = (animation.cur_frame // (animation.num_frames // (#ANIMATION_GHOST_PILL_VERTICAL - 1))) + 1
-			spr(ANIMATION_GHOST_PILL_VERTICAL[gp_frame], self:cx(start_x), self:cy(start_y), 0, 1, 0, 0, 1, 2)
+			local ghost = Assets.sprites.fx.ghost_pill.vertical
+			local gp_frame = (animation.cur_frame // (animation.num_frames // (#ghost - 1))) + 1
+			spr(ghost[gp_frame], self:cx(start_x), self:cy(start_y), 0, 1, 0, 0, 1, 2)
 
 			for ly = start_y + 2, end_y - 1, 1 do
-				local num_sprites = #ANIMATION_DROP_TRAIL_VERTICAL
+				local trail = Assets.sprites.fx.drop_trail.vertical
+				local num_sprites = #trail
 				local frame = math.max(animation.cur_frame - trail_offset, 0)
 						// (animation.num_frames // (num_sprites - 1))
 					+ 1
-				local sprite = ANIMATION_DROP_TRAIL_VERTICAL[math.min(frame, #ANIMATION_DROP_TRAIL_VERTICAL)]
+				local sprite = trail[math.min(frame, #trail)]
 				spr(sprite, self:cx(start_x), self:cy(ly), 0, 1, 0, 0, 1, 1)
 				trail_offset = trail_offset + 1
 			end
 		else
-			local gp_frame = (animation.cur_frame // (animation.num_frames // (#ANIMATION_GHOST_PILL_HORIZONTAL - 1)))
-				+ 1
-			spr(ANIMATION_GHOST_PILL_HORIZONTAL[gp_frame], self:cx(start_x), self:cy(start_y), 0, 1, 0, 0, 2, 1)
+			local ghost = Assets.sprites.fx.ghost_pill.horizontal
+			local gp_frame = (animation.cur_frame // (animation.num_frames // (#ghost - 1))) + 1
+			spr(ghost[gp_frame], self:cx(start_x), self:cy(start_y), 0, 1, 0, 0, 2, 1)
 
 			for ly = start_y + 1, end_y - 1, 1 do
-				local num_sprites = #ANIMATION_DROP_TRAIL_HORIZONTAL
+				local trail = Assets.sprites.fx.drop_trail.horizontal
+				local num_sprites = #trail
 				local frame = math.max(animation.cur_frame - trail_offset, 0)
 						// (animation.num_frames // (num_sprites - 1))
 					+ 1
-				local sprite = ANIMATION_DROP_TRAIL_HORIZONTAL[math.min(frame, #ANIMATION_DROP_TRAIL_HORIZONTAL)]
+				local sprite = trail[math.min(frame, #trail)]
 				spr(sprite, self:cx(start_x), self:cy(ly), 0, 1, 0, 0, 2, 1)
 				trail_offset = trail_offset + 1
 			end
@@ -751,7 +632,7 @@ function Grid:generate_stones(level)
 		table.remove(bag, rand_num)
 		self.board[rand_pos.y][rand_pos.x] = {
 			type = "stone",
-			spr = STONES_SPR[color],
+			spr = Assets.sprites.pieces.stones[color],
 			color = color,
 		}
 	end
@@ -775,7 +656,7 @@ end
 function Grid:increment_combo()
 	self.combo = self.combo + 1
 	local note = Audio.generate_note(self.combo, self.character.name)
-	Audio.play(SFX_CLEAR_PER_CHARACTER[self.character.id], -2, note)
+	Audio.play(Assets.sfx.character.clear[self.character.id], -2, note)
 end
 
 function Grid:queue_surprises(num_surprises)
@@ -832,14 +713,8 @@ function Grid:draw_target()
 	print("TAR:", cx, cy, 13, true, 1, true)
 	if self.target == TARGETS.LEADER then
 		print("lead", cx2, cy2, 8, true, 1, true)
-	elseif self.target == TARGETS.PLAYER_1 then
-		spr(FACES.PLAYER_1, cx2, cy2, 0, 1, 0, 0, 2, 1)
-	elseif self.target == TARGETS.PLAYER_2 then
-		spr(FACES.PLAYER_2, cx2, cy2, 0, 1, 0, 0, 2, 1)
-	elseif self.target == TARGETS.PLAYER_3 then
-		spr(FACES.PLAYER_3, cx2, cy2, 0, 1, 0, 0, 2, 1)
-	elseif self.target == TARGETS.PLAYER_4 then
-		spr(FACES.PLAYER_4, cx2, cy2, 0, 1, 0, 0, 2, 1)
+	elseif self.target >= TARGETS.PLAYER_1 and self.target <= TARGETS.PLAYER_4 then
+		spr(Assets.sprites.ui.faces[self.target], cx2, cy2, 0, 1, 0, 0, 2, 1)
 	elseif self.target == TARGETS.RANDOM then
 		print("rand", cx2, cy2, 8, true, 1, true)
 	end
@@ -869,11 +744,11 @@ function Grid:spawn_binding(binding)
 end
 
 function Grid:trigger_game_over()
-	Audio.play(SFX_OVERFLOW_PER_CHARACTER[self.character.id])
+	Audio.play(Assets.sfx.character.overflow[self.character.id])
 	self.game_over = true
 end
 
-function Grid:spawn_surprises(num_surprises)
+function Grid:spawn_next_surprises(num_surprises)
 	if num_surprises > self.w - 1 then
 		num_surprises = self.w - 1
 	end
@@ -883,23 +758,36 @@ function Grid:spawn_surprises(num_surprises)
 		table.insert(bag, x)
 	end
 
-	Console.log("sending " .. num_surprises .. " surprises to " .. self.player)
 	for i = 1, num_surprises, 1 do
 		local spawnindex = math.random(#bag)
 		local spawnx = bag[spawnindex]
 		table.remove(bag, spawnindex)
 		local spawny = 0
 
-		local cell = self.board[spawny][spawnx]
+		local color = Runes.get_random_color()
+		local cell = {
+			type = "half",
+			color = color,
+			spr = Assets.sprites.pieces.halves[color],
+			spawnx = spawnx,
+			spawny = spawny,
+		}
+		table.insert(self.surprises_drawn, cell)
+	end
+end
+
+function Grid:trigger_surprises_grav()
+	for i, v in ipairs(self.surprises_drawn) do
+		local cell = self.board[v.spawny][v.spawnx]
 		if not cell then
-			local color = Runes.get_random_color()
 			cell = {
-				type = "half",
-				color = color,
-				spr = HALVES_SPR[color],
+				type = v.type,
+				color = v.color,
+				spr = v.spr,
 			}
 		end
-		self.board[spawny][spawnx] = cell
+		self.board[v.spawny][v.spawnx] = cell
+		self.surprises_drawn = {}
 	end
 
 	self.cascade_trigger = true
@@ -915,7 +803,7 @@ function Grid:rotate_clockwise()
 	if self:available(x1, y1) and self:available(x2, y2) then
 		self.active_binding.rotation = next_rotation
 	else
-		Audio.play(SFX_INVALID_PER_CHARACTER[self.character.id])
+		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
@@ -929,7 +817,7 @@ function Grid:rotate_counterclockwise()
 	if self:available(x1, y1) and self:available(x2, y2) then
 		self.active_binding.rotation = next_rotation
 	else
-		Audio.play(SFX_INVALID_PER_CHARACTER[self.character.id])
+		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
@@ -942,7 +830,7 @@ function Grid:move_left()
 	if self:available(x1 - 1, y1) and self:available(x2 - 1, y2) then
 		self.active_binding.x = self.active_binding.x - 1
 	else
-		Audio.play(SFX_INVALID_PER_CHARACTER[self.character.id])
+		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
@@ -955,7 +843,7 @@ function Grid:move_right()
 	if self:available(x1 + 1, y1) and self:available(x2 + 1, y2) then
 		self.active_binding.x = self.active_binding.x + 1
 	else
-		Audio.play(SFX_INVALID_PER_CHARACTER[self.character.id])
+		Audio.play(Assets.sfx.character.invalid[self.character.id])
 	end
 end
 
@@ -996,7 +884,7 @@ function Grid:drop_binding()
 		return
 	end
 
-	Audio.play(SFX_DROP_PER_CHARACTER[self.character.id])
+	Audio.play(Assets.sfx.character.drop[self.character.id])
 
 	-- mark tiles that need to be animated (drop trail)
 	-- current position
@@ -1111,6 +999,12 @@ end
 function Grid:draw_halves()
 	for _, half in ipairs(self.halves) do
 		spr(half.spr, half.x * self.cell_size, half.y * self.cell_size, 0)
+	end
+end
+
+function Grid:draw_surprises_queue()
+	for i, v in ipairs(self.surprises_drawn) do
+		spr(Assets.sprites.pieces.surprise_queued[v.color], self:cx(v.spawnx), self:cy(v.spawny - 1), 0)
 	end
 end
 
@@ -1297,9 +1191,9 @@ function Grid:draw_border()
 			end
 			if ok == true then
 				local cx = self:cx(x - 1)
-				local sprt = BACKGROUND.SINGLE
+				local sprt = Assets.sprites.ui.background.single
 				if transparent == true then
-					sprt = BACKGROUND.SINGLE_TRANSPARENT
+					sprt = Assets.sprites.ui.background.single_transparent
 				end
 				spr(sprt, cx, cy, 0)
 			end
@@ -1307,10 +1201,10 @@ function Grid:draw_border()
 	end
 
 	-- around next pill
-	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y + 1))
-	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y + 1))
-	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x), self:cy(self.next_binding_y - 1))
-	-- spr(BACKGROUND.SINGLE, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y - 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x), self:cy(self.next_binding_y + 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y + 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x), self:cy(self.next_binding_y - 1))
+	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_binding_x + 1), self:cy(self.next_binding_y - 1))
 end
 
 function Grid:draw_border_deprecated()
@@ -1321,27 +1215,27 @@ function Grid:draw_border_deprecated()
 
 			if y == 0 then
 				if x == 0 then
-					spr(BORDER.TOPLEFT, cx, cy, 0)
+					spr(Assets.sprites.ui.border.top_left, cx, cy, 0)
 				elseif x == self.w - 1 then
-					spr(BORDER.TOPRIGHT, cx, cy, 0)
+					spr(Assets.sprites.ui.border.top_right, cx, cy, 0)
 				else
-					spr(BORDER.TOP, cx, cy, 0)
+					spr(Assets.sprites.ui.border.top, cx, cy, 0)
 				end
 			elseif y == self.h - 1 then
 				if x == 0 then
-					spr(BORDER.BOTTOMLEFT, cx, cy, 0)
+					spr(Assets.sprites.ui.border.bottom_left, cx, cy, 0)
 				elseif x == self.w - 1 then
-					spr(BORDER.BOTTOMRIGHT, cx, cy, 0)
+					spr(Assets.sprites.ui.border.bottom_right, cx, cy, 0)
 				else
-					spr(BORDER.BOTTOM, cx, cy, 0)
+					spr(Assets.sprites.ui.border.bottom, cx, cy, 0)
 				end
 			else
 				if x == 0 then
-					spr(BORDER.LEFT, cx, cy, 0)
+					spr(Assets.sprites.ui.border.left, cx, cy, 0)
 				elseif x == self.w - 1 then
-					spr(BORDER.RIGHT, cx, cy, 0)
+					spr(Assets.sprites.ui.border.right, cx, cy, 0)
 				else
-					spr(BORDER.CENTER, cx, cy, 0)
+					spr(Assets.sprites.ui.border.center, cx, cy, 0)
 				end
 			end
 		end
@@ -1482,9 +1376,15 @@ function Grid:log_state()
 end
 
 function Grid:eval()
-	if self.active_binding == nil and self.surprises_queue > 0 then
-		-- TODO: check for race condition in here vs queue_surprises by other grids
-		self:spawn_surprises(self.surprises_queue)
+	if self.active_binding == nil then
+		if #self.surprises_drawn > 0 then
+			self:trigger_surprises_grav()
+			return
+		end
+	end
+
+	if self.surprises_queue > 0 then
+		self:spawn_next_surprises(self.surprises_queue)
 		self.surprises_queue = 0
 		return
 	end
@@ -1650,7 +1550,7 @@ function Grid:remove_marked()
 		local cell = self.board[pos.y][pos.x]
 		if cell then
 			cell.type = "half"
-			cell.spr = HALVES_SPR[cell.color]
+			cell.spr = Assets.sprites.pieces.halves[cell.color]
 		end
 	end
 
@@ -1658,7 +1558,7 @@ function Grid:remove_marked()
 		self.board[diff.y][diff.x] = nil
 		local cx = self:cx(diff.x)
 		local cy = self:cy(diff.y)
-		spr(BORDER.CENTER, cx, cy, 0)
+		spr(Assets.sprites.ui.border.center, cx, cy, 0)
 
 		self:add_animation_to_queue(ANIMATIONS.DISAPPEARING_PILL, {
 			x = diff.x,
@@ -1696,7 +1596,7 @@ function Menu:print_item(txt, is_selected, y_offset)
 	local x = Screen.width // 2 - width // 2
 	local y = Screen.height // 2 + y_offset
 	if is_selected then
-		spr(352, 80, y - 2)
+		spr(Assets.sprites.ui.menu_cursor, 80, y - 2)
 	end
 	print(txt, x, y, 8, true)
 end
@@ -1892,6 +1792,7 @@ function Grid:draw()
 	self:draw_static_bindings()
 	self:draw_active_binding()
 	self:draw_halves()
+	self:draw_surprises_queue()
 	self:draw_character(t)
 	self:draw_score()
 	self:draw_next_binding()
@@ -1899,7 +1800,7 @@ function Grid:draw()
 end
 
 function TIC()
-	Audio.playBGM(TRACK.FEVER)
+	Audio.playBGM(Assets.music.fever)
 	Console.update()
 	cls(0)
 
