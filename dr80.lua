@@ -178,6 +178,11 @@ local Assets = {
 				S = { 406, 407, 408, 409 },
 				E = { 403, 404, 405, 409 },
 			},
+			appear = {
+				R = { 409, 402, 401, 400 },
+				S = { 409, 408, 407, 406 },
+				E = { 409, 405, 404, 403 },
+			},
 			cloud = 194,
 			cloud_raining = { 196, 198, 200, 202, 204 },
 			spawn_animation_temp_gray = { 409, 474 },
@@ -702,6 +707,11 @@ function Grid:generate_next_pill()
 		x = self.next_pill_x,
 		y = self.next_pill_y,
 		rotation = 0,
+		spawn_animation = {
+			cur_frame = 0,
+			rune1_frames = Assets.sprites.fx.appear[pill.rune1.name],
+			rune2_frames = Assets.sprites.fx.appear[pill.rune2.name],
+		},
 	}
 end
 
@@ -717,12 +727,18 @@ function Grid:draw_next_pill()
 	local x1, y1, x2, y2 = self:get_pill_xy(next_pill)
 	local spr1, spr2 = self:get_pill_sprites(next_pill)
 
+	if next_pill.spawn_animation.cur_frame < 20 then
+		spr1 = next_pill.spawn_animation.rune1_frames[next_pill.spawn_animation.cur_frame // 5 + 1]
+		spr2 = next_pill.spawn_animation.rune2_frames[next_pill.spawn_animation.cur_frame // 5 + 1]
+		next_pill.spawn_animation.cur_frame = next_pill.spawn_animation.cur_frame + 1
+	end
+
 	spr(spr1, self:cx(x1), self:cy(y1), 0)
 	spr(spr2, self:cx(x2), self:cy(y2), 0)
 end
 
 function Grid:draw_target()
-	if self.game_over or Game.players <= 2 then
+	if self.game_over then
 		return
 	end
 	local cx = self:cx(self.target_x)
@@ -1557,17 +1573,6 @@ end
 
 function Grid:send_surprises(combo, target)
 	local victim = 0
-	if Game.players == 2 then
-		if self.player == 1 then
-			victim = 2
-		else
-			victim = 1
-		end
-
-		Game.send_surprises(victim, combo)
-		return
-	end
-
 	Console.log("target: " .. target)
 	if target == TARGETS.LEADER then
 		victim = Game.find_leader(self.player)
@@ -1856,7 +1861,7 @@ function Grid:update()
 	if btnp(keys.PAUSE) then
 		self:log_state()
 	end
-	if Game.players > 2 and btnp(keys.SUPER) then
+	if btnp(keys.SUPER) then
 		self:cycle_target()
 
 		-- Game.send_surprises(2, 3)
