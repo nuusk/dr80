@@ -722,7 +722,7 @@ function Grid:draw_next_pill()
 end
 
 function Grid:draw_target()
-	if self.game_over then
+	if self.game_over or Game.players <= 2 then
 		return
 	end
 	local cx = self:cx(self.target_x)
@@ -1557,6 +1557,17 @@ end
 
 function Grid:send_surprises(combo, target)
 	local victim = 0
+	if Game.players == 2 then
+		if self.player == 1 then
+			victim = 2
+		else
+			victim = 1
+		end
+
+		Game.send_surprises(victim, combo)
+		return
+	end
+
 	Console.log("target: " .. target)
 	if target == TARGETS.LEADER then
 		victim = Game.find_leader(self.player)
@@ -1845,7 +1856,7 @@ function Grid:update()
 	if btnp(keys.PAUSE) then
 		self:log_state()
 	end
-	if btnp(keys.SUPER) then
+	if Game.players > 2 and btnp(keys.SUPER) then
 		self:cycle_target()
 
 		-- Game.send_surprises(2, 3)
@@ -2375,4 +2386,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
