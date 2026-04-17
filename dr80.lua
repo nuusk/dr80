@@ -180,7 +180,13 @@ local Assets = {
 			},
 			cloud = 194,
 			cloud_raining = { 196, 198, 200, 202, 204 },
-			spawn_animation_temp = { 409, 408, 407, 406, 407, 408, 409 },
+			spawn_animation_temp_gray = { 409, 474 },
+			spawn_animation_temp_transparent = { 409, 478, 409 },
+			spawn_animation_temp_color = {
+				R = { 409, 402, 401, 400 },
+				S = { 409, 408, 407, 406 },
+				E = { 409, 405, 404, 403 },
+			},
 		},
 		characters = {
 			[1] = {
@@ -222,6 +228,7 @@ local Game = {
 	mode = MODES.VS,
 	grids = {},
 	players = 1,
+	grids_spawned = false,
 }
 
 -- Audio manager --
@@ -1189,62 +1196,136 @@ function Grid:cy(y)
 end
 
 -- TODO: think of some nicer animation and add animation to viruses as well
-function Grid:spawn_grid(t)
+function Grid:get_spawn_tile_art(x, y, border, transparent)
+	local frames = Assets.sprites.fx.spawn_animation_temp_gray
+	local base = nil
+
+	if border == false then
+		local cell = self.board[y - 1][x - 1]
+		if cell ~= nil then
+			frames = Assets.sprites.fx.spawn_animation_temp_color[cell.color]
+			base = Assets.sprites.pieces.stones[cell.color]
+		end
+	end
+	if border == true then
+		base = Assets.sprites.ui.background.single
+	end
+	if transparent == true then
+		frames = Assets.sprites.fx.spawn_animation_temp_transparent
+		base = Assets.sprites.ui.background.single_transparent
+	end
+
+	return frames, base
+end
+
+function Grid:spawn_grid_radial_wave(t)
 	if self.grid_spawn_start_t == nil then
 		self.grid_spawn_start_t = t
 	end
 
-	local elapsed = (t - self.grid_spawn_start_t) / 3
+	local elapsed = (t - self.grid_spawn_start_t) / 4
 	local cx0 = self.w / 2
 	local cy0 = self.h / 2
-	local frames = Assets.sprites.fx.spawn_animation_temp
-	local settle_delay = #frames - 1
 
+	local all_finished = true
 	for y = 0, self.h + 1, 1 do
 		local cy = self:cy(y - 1)
 		for x = 0, self.w + 1, 1 do
-			local ok = false
-			local transparent = false
-			if y == self.h + 1 then
-				ok = true
-			end
-			if y == 0 then
-				ok = true
-				if x > 1 and x < self.w then
-					transparent = true
-				end
-			end
-			if x == 0 or x == self.w + 1 then
-				ok = true
-			end
-			if ok ~= true then
-				goto continue
-			end
-
 			local cx = self:cx(x - 1)
 			local dx = x - cx0
 			local dy = y - cy0
 			local distance = math.sqrt(dx * dx + dy * dy)
 			local wave_start = distance * 1.5 + y * 0.2
 			local phase = elapsed - wave_start
-
-			if phase >= 0 then
-				local base = Assets.sprites.ui.background.single
-				if transparent == true then
-					base = Assets.sprites.ui.background.single_transparent
-				end
-				spr(base, cx, cy, 0)
-
-				local frame = math.floor(phase) + 1
-				if frame <= #frames then
-					local effect = frames[#frames - frame + 1]
-					spr(effect, cx, cy, 0)
-				end
+			if phase < 0 then
+				all_finished = false
 			end
 
-			::continue::
+			local border = false
+			local transparent = false
+			if y == self.h + 1 then
+				border = true
+			end
+			if y == 0 then
+				border = true
+				if x > 1 and x < self.w then
+					transparent = true
+				end
+			end
+			if x == 0 or x == self.w + 1 then
+				border = true
+			end
+
+			if phase >= 0 then
+				local frames, base = self:get_spawn_tile_art(x, y, border, transparent)
+				local frame = math.floor(phase) + 1
+				if frame <= #frames then
+					all_finished = false
+					local effect = frames[frame]
+					spr(effect, cx, cy, 0)
+				elseif base ~= nil then
+					spr(base, cx, cy, 0)
+				end
+			end
 		end
 	end
+
+	return all_finished
+end
+
+function Grid:spawn_grid(t)
+	if self.grid_spawn_start_t == nil then
+		self.grid_spawn_start_t = t
+	end
+
+	local elapsed = (t - self.grid_spawn_start_t) / 6
+	local all_finished = true
+	local max_x = self.w + 1
+
+	for y = 0, self.h + 1, 1 do
+		local cy = self:cy(y - 1)
+		local row_delay = y * 0.85
+		for x = 0, self.w + 1, 1 do
+			local cx = self:cx(x - 1)
+			local lane_x = x
+			if y % 2 == 1 then
+				lane_x = max_x - x
+			end
+			local wave_start = row_delay + lane_x * 0.45 + ((x + y) % 2) * 0.35
+			local phase = elapsed - wave_start
+			if phase < 0 then
+				all_finished = false
+			end
+
+			local border = false
+			local transparent = false
+			if y == self.h + 1 then
+				border = true
+			end
+			if y == 0 then
+				border = true
+				if x > 1 and x < self.w then
+					transparent = true
+				end
+			end
+			if x == 0 or x == self.w + 1 then
+				border = true
+			end
+
+			if phase >= 0 then
+				local frames, base = self:get_spawn_tile_art(x, y, border, transparent)
+				local frame = math.floor(phase) + 1
+				if frame <= #frames then
+					all_finished = false
+					spr(frames[frame], cx, cy, 0)
+				elseif base ~= nil then
+					spr(base, cx, cy, 0)
+				end
+			end
+		end
+	end
+
+	return all_finished
 end
 
 function Grid:draw_border()
@@ -1366,8 +1447,13 @@ function Game.animate_grids()
 end
 
 function Game.spawn_grids()
+	local spawn_ended = true
 	for _, grid in pairs(Game.grids) do
-		grid:spawn_grid(t)
+		local ended = grid:spawn_grid(t)
+		spawn_ended = spawn_ended and ended
+	end
+	if spawn_ended == true then
+		Game.grids_spawned = true
 	end
 end
 
@@ -1860,7 +1946,7 @@ function TIC()
 		Game.update_params()
 		Game.draw_params()
 	elseif Game.scene == SCENES.GAME then
-		if t > 100 then
+		if Game.grids_spawned then
 			Game.update_grids()
 			Game.draw_grids()
 			Game.animate_grids()
