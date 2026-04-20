@@ -183,8 +183,8 @@ local Assets = {
 				S = { 409, 408, 407, 406 },
 				E = { 409, 405, 404, 403 },
 			},
-			cloud = 194,
-			cloud_raining = { 196, 198, 200, 202, 204 },
+			cloud = 353,
+			cloud_raining = { 355, 357, 359, 361, 363 },
 			spawn_animation_temp_gray = { 409, 474 },
 			spawn_animation_temp_transparent = { 409, 478, 409 },
 			spawn_animation_temp_color = {
@@ -2523,4 +2523,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
