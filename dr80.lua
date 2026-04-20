@@ -202,7 +202,7 @@ local Assets = {
 			[2] = {
 				name = "opal",
 				idle = { 48, 50, 52, 54 },
-				game_over = { 48 },
+				game_over = { 58 },
 			},
 			[3] = {
 				name = "amethyst",
@@ -2535,4 +2535,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
