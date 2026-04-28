@@ -428,6 +428,7 @@ function Grid:new(player)
 	g.halves = {}
 	g.drop_phase = false
 	g.board = {}
+	g.phantom_half = {} -- pill that got cut cause it didnt fit on the board. will be used for counting rle
 	g.interval = 60
 	g.is_paused = false
 	g.character = nil
@@ -549,6 +550,34 @@ function Grid:draw_score()
 	print(self.num_stones, self:cx(self.score_x) + offset, self:cy(self.score_y) - (self.cell_size // 4), 8, true)
 end
 
+function Grid:should_panic(t)
+	if t < 1000 then
+		return false
+	end
+
+	return self:get_board_criticality() > 0.4
+end
+
+function Grid:get_board_criticality()
+	local total = 0
+	local danger_points = 0
+
+	local multiplier = self.h
+	for y = 0, self.h - 1, 1 do
+		for x = 0, self.w - 1, 1 do
+			local x_offset = math.abs(self.w / 2 - x)
+			local position_points = (self.w / 2 - x_offset) * multiplier
+			if self.board[y][x] ~= nil then
+				danger_points = danger_points + position_points
+			end
+			total = total + position_points
+		end
+		multiplier = multiplier - 1
+	end
+
+	return danger_points / total
+end
+
 function Grid:draw_character(t)
 	local char = self.character
 	if char == nil then
@@ -569,11 +598,20 @@ function Grid:draw_character(t)
 
 		local ry = self:cy(self.character_y - 1)
 		spr(frame, cx, ry, 0, 1, 0, 0, 2, 1)
-	else
-		local i = (t // 8) % #char.anim_idle.sprites + 1
-		local frame = char.anim_idle.sprites[i]
-		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
+		return
 	end
+
+	if self:should_panic(t) then
+		local sprites = Assets.sprites.characters[char.id].panic
+		local i = (t // 12) % #sprites + 1
+		local frame = sprites[i]
+		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
+		return
+	end
+
+	local i = (t // 8) % #char.anim_idle.sprites + 1
+	local frame = char.anim_idle.sprites[i]
+	spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
 end
 
 function Grid:add_animation_to_queue(name, options)
@@ -1205,6 +1243,19 @@ function Grid:mark_active_pill_as_static()
 		}
 	end
 
+	self.phantom_half = nil
+	if y1 < 0 then
+		self.phantom_half = {
+			color = self.active_pill.rune1.name,
+			x = x1,
+		}
+	elseif y2 < 0 then
+		self.phantom_half = {
+			color = self.active_pill.rune2.name,
+			x = x2,
+		}
+	end
+
 	self.active_pill = nil
 end
 
@@ -1684,6 +1735,13 @@ function Grid:count_y_rle()
 					color = self.board[y][x].color,
 					count = 1,
 				}
+				if
+					self.phantom_half ~= nil
+					and self.phantom_half.color == self.board[y][x].color
+					and self.phantom_half.x == x
+				then
+					acc.count = acc.count + 1
+				end
 			elseif acc.color == self.board[y][x].color then
 				acc.count = acc.count + 1
 			else
