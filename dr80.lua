@@ -261,6 +261,7 @@ local Game = {
 	mode = MODES.VS,
 	grids = {},
 	players = 1,
+	winner = 0,
 	grids_spawned = false,
 }
 
@@ -601,6 +602,14 @@ function Grid:draw_character(t)
 		return
 	end
 
+	if self.winner == true then
+		local sprites = Assets.sprites.characters[char.id].victory
+		local i = (t // 12) % #sprites + 1
+		local frame = sprites[i]
+		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
+		return
+	end
+
 	if self:should_panic(t) then
 		local sprites = Assets.sprites.characters[char.id].panic
 		local i = (t // 12) % #sprites + 1
@@ -848,6 +857,12 @@ end
 function Grid:trigger_game_over()
 	Audio.play(Assets.sfx.character.overflow[self.character.id])
 	self.game_over = true
+end
+
+function Grid:mark_as_winner()
+	-- Audio.play(Assets.sfx.character.victory[self.character.id])
+	-- TODO: add victory sounds
+	self.winner = true
 end
 
 function Grid:spawn_queued_surprises()
@@ -1594,6 +1609,25 @@ function Game.get_grid_width()
 	end
 end
 
+function Game.eval_winner()
+	local current_winner = 1
+	local game_overs = 0
+	for i, grid in ipairs(Game.grids) do
+		if grid.game_over then
+			game_overs = game_overs + 1
+		else
+			current_winner = i
+		end
+	end
+
+	if game_overs == Game.players - 1 then
+		Game.winner = current_winner
+		Game.grids[current_winner]:mark_as_winner()
+		return true
+	end
+	return false
+end
+
 function Grid:log_state()
 	Console.clear()
 	Console.log(self.active_pill)
@@ -1984,7 +2018,7 @@ function Grid:update()
 	end
 
 	if t % effective_interval == 0 then
-		if self.is_paused ~= true and self.game_over ~= true then
+		if self.is_paused ~= true and self.game_over ~= true and self.winner ~= true then
 			self:eval()
 		end
 	end
@@ -2067,6 +2101,9 @@ function TIC()
 		Game.draw_params()
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
+			local do_we_have_a_winner = Game.eval_winner()
+			if do_we_have_a_winner then
+			end
 			Game.update_grids()
 			Game.draw_grids()
 			Game.animate_grids()
