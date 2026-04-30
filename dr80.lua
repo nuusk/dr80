@@ -138,6 +138,7 @@ local Assets = {
 			},
 			background = {
 				single = 503,
+				single_dark = 501,
 				single_transparent = 474,
 				square_2x2 = 270,
 			},
@@ -182,6 +183,7 @@ local Assets = {
 				R = { 409, 402, 401, 400 },
 				S = { 409, 408, 407, 406 },
 				E = { 409, 405, 404, 403 },
+				gray = { 409, 474, 503 },
 			},
 			cloud = 353,
 			cloud_raining = { 355, 357, 359, 361, 363 },
@@ -1462,6 +1464,9 @@ function Grid:draw_border()
 				if transparent == true then
 					sprt = Assets.sprites.ui.background.single_transparent
 				end
+				if self.game_over then
+					sprt = Assets.sprites.ui.background.single_dark
+				end
 				spr(sprt, cx, cy, 0)
 			end
 		end
@@ -2103,8 +2108,10 @@ function TIC()
 		if Game.grids_spawned then
 			local do_we_have_a_winner = Game.eval_winner()
 			if do_we_have_a_winner then
+			else
+				Game.update_grids()
 			end
-			Game.update_grids()
+
 			Game.draw_grids()
 			Game.animate_grids()
 		else
