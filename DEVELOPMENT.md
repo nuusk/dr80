@@ -28,8 +28,12 @@ Instruments:
 35 - medium size triangle wave, used for bass
 36 - triangle wave with offset (vol 0-100-0), main instrument
 40 - regular square wave instrument, created for title theme, may use in other tracks as well
+41 - percussion 1
 
 ## Music
+
+track 01 - fever
+track 02 - title
 
 ## Waves
 
