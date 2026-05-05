@@ -194,6 +194,11 @@ local Assets = {
 				S = { 409, 408, 407, 406 },
 				E = { 409, 405, 404, 403 },
 			},
+			virus_idle_animation = {
+				R = { 256, 256, 256, 256, 257, 258, 257, 259, 260, 261, 260, 256, 256, 256, 256, 256 },
+				S = { 272 },
+				E = { 288 },
+			},
 		},
 		characters = {
 			[1] = {
@@ -769,7 +774,13 @@ function Grid:draw_board()
 			if self.board[y][x] ~= nil then
 				local cx = self:cx(x)
 				local cy = self:cy(y)
-				spr(self.board[y][x].spr, cx, cy, 0)
+				if self.board[y][x].type == CELL_TYPES.STONE then
+					local sprites = Assets.sprites.fx.virus_idle_animation[self.board[y][x].color]
+					local frame = (t // 5) % #sprites
+					spr(sprites[frame + 1], cx, cy, 0)
+				else
+					spr(self.board[y][x].spr, cx, cy, 0)
+				end
 			end
 		end
 	end
