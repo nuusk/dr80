@@ -149,7 +149,7 @@ local Assets = {
 				{ name = "S", W = 506, E = 507, N = 493, S = 509 },
 				{ name = "E", W = 488, E = 489, N = 494, S = 510 },
 			},
-			stones = {
+			viruses = {
 				R = 256,
 				S = 272,
 				E = 288,
@@ -728,7 +728,7 @@ function Grid:generate_stones(level)
 		table.remove(bag, rand_num)
 		self.board[rand_pos.y][rand_pos.x] = {
 			type = CELL_TYPES.STONE,
-			spr = Assets.sprites.pieces.stones[color],
+			spr = Assets.sprites.pieces.viruses[color],
 			color = color,
 		}
 	end
@@ -1316,7 +1316,7 @@ function Grid:get_spawn_tile_art(x, y, border, transparent)
 		local cell = self.board[y - 1][x - 1]
 		if cell ~= nil then
 			frames = Assets.sprites.fx.spawn_animation_temp_color[cell.color]
-			base = Assets.sprites.pieces.stones[cell.color]
+			base = Assets.sprites.pieces.viruses[cell.color]
 		end
 	end
 	if border == true then
@@ -2717,4 +2717,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
