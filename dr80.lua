@@ -144,7 +144,7 @@ local Assets = {
 			},
 		},
 		pieces = {
-			runes = {
+			pills = {
 				{ name = "R", W = 490, E = 491, N = 492, S = 508 },
 				{ name = "S", W = 506, E = 507, N = 493, S = 509 },
 				{ name = "E", W = 488, E = 489, N = 494, S = 510 },
@@ -494,7 +494,7 @@ end
 local Runes = {}
 
 function Runes.generate_pill_runes()
-	local runes = Assets.sprites.pieces.runes
+	local runes = Assets.sprites.pieces.pills
 	local rune1 = runes[math.random(1, #runes)]
 	local rune2 = runes[math.random(1, #runes)]
 	return { rune1 = rune1, rune2 = rune2 }
