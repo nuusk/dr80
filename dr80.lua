@@ -124,7 +124,7 @@ local Assets = {
 	sprites = {
 		ui = {
 			menu_cursor = 352,
-			faces = { 0, 48, 192, 206 },
+			faces = { 0, 48, 192, 200 },
 			border = {
 				top_left = 32,
 				top = 33,
@@ -431,12 +431,21 @@ function Grid:new(player)
 		g.target_selected_y = g.h - 7
 	else
 		g.px = (player - 1) * (g.w + 1) + 1
-		g.next_pill_x = g.w - 3
-		g.next_pill_y = -3
-		g.character_x = g.w - 1
-		g.character_y = -4
-		g.score_x = 0
-		g.score_y = -2
+		g.next_pill_x = g.w - 5
+		if Game.players == 4 then
+			g.next_pill_x = g.w - 4
+		end
+		g.next_pill_y = -2
+		g.character_x = g.w - 3
+		if Game.players == 4 then
+			g.character_x = g.w - 2
+		end
+		g.character_y = -2
+		g.score_x = 1
+		if Game.players == 4 then
+			g.score_x = 0
+		end
+		g.score_y = -1
 		g.target_x = 0
 		g.target_y = -4
 		g.target_selected_x = 2
@@ -636,6 +645,21 @@ function Grid:draw_character(t)
 
 	local cx = self:cx(self.character_x)
 	local cy = self:cy(self.character_y)
+
+	if Game.players > 2 then
+		local assets = Assets.sprites.characters[self.player]
+		local sprt = assets.face_idle
+		if self.game_over == true then
+			sprt = assets.face_game_over
+		elseif self.winner == true then
+			sprt = assets.face_victory
+		elseif self:should_panic(t) then
+			sprt = assets.face_panic
+		end
+
+		spr(sprt, cx, cy, 0, 1, 0, 0, 2, 1)
+		return
+	end
 
 	if self.game_over == true then
 		spr(char.anim_game_over.sprites[1], cx, cy, 0, 1, 0, 0, char.w, char.h)
@@ -1641,7 +1665,7 @@ function Game.get_grid_height()
 	if Game.players <= 2 then
 		return 15
 	end
-	return 12
+	return 13
 end
 
 function Game.get_grid_y()
@@ -1649,7 +1673,7 @@ function Game.get_grid_y()
 	if Game.players <= 2 then
 		return 1
 	end
-	return 4
+	return 2
 end
 
 function Game.get_grid_width()
@@ -2148,7 +2172,8 @@ function Grid:draw()
 		self:draw_additionals()
 	end
 	self:draw_next_pill()
-	self:draw_target()
+	-- TODO: consider removing
+	-- self:draw_target()
 end
 
 function TIC()
