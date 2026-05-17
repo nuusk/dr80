@@ -123,7 +123,8 @@ local Assets = {
 	},
 	sprites = {
 		ui = {
-			menu_cursor = 352,
+			menu_cursor = 410,
+			menu_cursor_selected = 411,
 			faces = { 0, 48, 192, 200 },
 			border = {
 				top_left = 32,
@@ -155,6 +156,21 @@ local Assets = {
 				},
 				pill_dark_gray = 496,
 				pill_white_border = 444,
+			},
+			settings = {
+				empty = 458,
+				difficulty_setting_levels = {
+					426,
+					427,
+					428,
+					429,
+				},
+				speed_setting_levels = {
+					442,
+					443,
+					444,
+					445,
+				},
 			},
 		},
 		pieces = {
@@ -401,6 +417,10 @@ local CELL_TYPES = {
 	PILL = "pill",
 }
 
+local SETTING_TYPES = {
+	NUMBER = "number",
+}
+
 -- Grid manager --
 
 local Grid = {
@@ -417,6 +437,30 @@ function Grid:new(player)
 	g.py = Game.get_grid_y()
 	g.spawn_animation_finished = true
 	g.target = TARGETS.LEADER
+	g.settings = {
+		{
+			text = "difficulty",
+			type = SETTING_TYPES.NUMBER,
+			value = 5,
+			min = 1,
+			max = 4,
+		},
+		{
+			text = "speed",
+			type = SETTING_TYPES.NUMBER,
+			value = 2,
+			min = 1,
+			max = 4,
+		},
+		{
+			text = "character",
+			type = SETTING_TYPES.CHARACTER,
+			value = player,
+			min = 1,
+			max = 4,
+		},
+	}
+	g.selected_setting = 1
 	if Game.players <= 2 then
 		g.px = (player - 1) * (g.w + 4) + 1
 		g.next_pill_x = g.w + 1
@@ -1547,12 +1591,116 @@ function Grid:draw_border()
 			end
 		end
 	end
+end
 
-	-- around next pill
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x), self:cy(self.next_pill_y + 1))
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x + 1), self:cy(self.next_pill_y + 1))
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x), self:cy(self.next_pill_y - 1))
-	-- spr(Assets.sprites.ui.background.single, self:cx(self.next_pill_x + 1), self:cy(self.next_pill_y - 1))
+function Grid:draw_menu_border()
+	for y = 0, self.h + 1 do
+		local cy = self:cy(y - 1)
+		for x = 0, self.w + 1 do
+			local ok = false
+			if y == self.h + 1 then
+				ok = true
+			end
+			if y == 0 then
+				ok = true
+			end
+			if x == 0 or x == self.w + 1 then
+				ok = true
+			end
+			if ok == true then
+				local cx = self:cx(x - 1)
+				local sprt = Assets.sprites.ui.background.single_transparent
+				spr(sprt, cx, cy, 0)
+			end
+		end
+	end
+end
+
+function Grid:draw_settings()
+	for i, s in ipairs(self.settings) do
+		local text_offset = self:get_offset(i)
+		local is_selected = self.selected_setting == i
+		self:print_setting_text(s.text, is_selected, text_offset)
+		local value_offset = text_offset + 6
+		self:draw_setting_value(s.value, s.min, s.max, is_selected, value_offset)
+	end
+end
+
+function Grid:print_setting_text(txt, is_selected, y_offset)
+	local width = print(txt, 0, -100, 8, true, 1, true)
+	local x = (self:cx(0) + self:cx(self.w) - width) // 2
+	local y = self:cy(self.h) // 2 + y_offset
+	local color = 8
+	if is_selected then
+		-- spr(Assets.sprites.ui.menu_cursor, 80, y - 2)
+		color = 3
+	end
+	print(txt, x, y, color, true, 1, true)
+end
+
+function Grid:draw_setting_value(value, min, max, is_selected, y_offset)
+	local x = (self.w - max) / 2
+	local y = self:cy(self.h) // 2 + y_offset
+	-- if is_selected
+	local levels = Assets.sprites.ui.settings.difficulty_setting_levels
+	local i = 0
+	while i < max do
+		local empty = Assets.sprites.ui.settings.empty
+		if value > i then
+			empty = levels[i + 1]
+		end
+		spr(empty, self:cx(x + i), y, 0)
+		i = i + 1
+	end
+end
+
+function Grid:get_offset(i)
+	local center_index = (#self.settings + 1) // 2
+	return (i - center_index) * 20
+end
+
+function Grid:setting_next()
+	self.selected_setting = (self.selected_setting + 1) % (#self.settings + 1)
+	if self.selected_setting == 0 then
+		self.selected_setting = 1
+	end
+end
+
+function Grid:setting_prev()
+	self.selected_setting = (self.selected_setting - 1) % #self.settings
+	if self.selected_setting == 0 then
+		self.selected_setting = #self.settings
+	end
+end
+
+function Grid:selected_setting_plus()
+	local current = self.settings[self.selected_setting]
+	if current.type == SETTING_TYPES.NUMBER then
+		if current.value == current.max then
+			return
+		end
+		current.value = current.value + 1
+	elseif current.type == SETTING_TYPES.CHARACTER then
+		current.value = current.value + 1
+		if current.value == 5 then
+			current.value = 1
+		end
+	end
+end
+
+function Grid:selected_setting_minus()
+	local current = self.settings[self.selected_setting]
+	if current.type == SETTING_TYPES.NUMBER then
+		if current.value == current.min then
+			return
+		end
+		current.value = current.value - 1
+	elseif current.type == SETTING_TYPES.CHARACTER then
+		current.value = current.value - 1
+		if current.value == 0 then
+			current.value = 4
+		end
+	end
 end
 
 -- Grid manager end --
@@ -1567,7 +1715,7 @@ function Game.setup_game(players)
 		table.insert(Game.grids, grid)
 	end
 
-	Game.scene = SCENES.GAME
+	Game.scene = SCENES.PARAMS
 end
 
 function Game.find_leader(excluded_player)
@@ -1654,9 +1802,9 @@ function Game.update_params()
 	end
 end
 
-function Game.draw_params()
+function Game.draw_player_menus()
 	for _, grid in pairs(Game.grids) do
-		grid:draw_params()
+		grid:draw_player_menu()
 	end
 end
 
@@ -1955,10 +2103,15 @@ function Menu:print_item(txt, is_selected, y_offset)
 	local width = print(txt, 0, -100)
 	local x = Screen.width // 2 - width // 2
 	local y = Screen.height // 2 + y_offset
+	local color = 8
+	local sprt = Assets.sprites.ui.menu_cursor
 	if is_selected then
-		spr(Assets.sprites.ui.menu_cursor, 80, y - 2)
+		sprt = Assets.sprites.ui.menu_cursor_selected
+		color = 3
 	end
-	print(txt, x, y, 8, true)
+	spr(sprt, 80, y - 2)
+	spr(sprt, 152, y - 2)
+	print(txt, x, y, color, true)
 end
 
 function Menu:get_offset(i)
@@ -2139,21 +2292,22 @@ end
 function Grid:update_params()
 	local keys = KEYMAPS[self.player]
 	if btnp(keys.UP) then
-		self:param_up()
+		self:setting_prev()
 	end
 	if btnp(keys.DOWN) then
-		self:param_down()
+		self:setting_next()
 	end
 	if btnp_repeat(keys.LEFT) then
-		if self.level > 1 then
-			self.level = self.level - 1
-		end
+		self:selected_setting_minus()
 	end
 	if btnp_repeat(keys.RIGHT) then
-		if self.level < 9 then
-			self.level = self.level + 1
-		end
+		self:selected_setting_plus()
 	end
+end
+
+function Grid:draw_player_menu()
+	self:draw_menu_border()
+	self:draw_settings()
 end
 
 function Grid:draw()
@@ -2186,7 +2340,7 @@ function TIC()
 		Game.menu:draw()
 	elseif Game.scene == SCENES.PARAMS then
 		Game.update_params()
-		Game.draw_params()
+		Game.draw_player_menus()
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
 			local do_we_have_a_winner = Game.eval_winner()
@@ -2562,7 +2716,6 @@ end
 -- 093:aaaaaac9bbbbbbbccccbbbbcccccbbc0333cbcc099999c00cccc00000cccc000
 -- 094:0c9acbca0c9baaab0c99bbbb00c99bbb00cc9bcc000ccb99000c0ccc000acccc
 -- 095:aaacacbcbbbbbbbcbbbbbbbcbbbbbbc0ccccbcc09999bc00cccc0c000cccca00
--- 096:0000000000ddddd00dd000dd0d00d00d0d000d0d0d00000d0dd000dd00ddddd0
 -- 097:000000000000000c000000cd000cccdd00cecddd00ceeded000ccede00000ccc
 -- 098:cccc00008888cc0088888cc0888888c0d88888ccdd88d88cdddddcc0ccccc000
 -- 099:000000000000e000000e00000000000e00000000000000e000000e0000000000
@@ -2620,6 +2773,8 @@ end
 -- 151:0666666066000066600050066000050660500006600500066600006606666660
 -- 152:0555555055000055500050055000050550500005500500055500005505555550
 -- 153:0dddddd0dd0000ddd000d00dd0000d0dd0d0000dd00d000ddd0000dd0dddddd0
+-- 154:0000000000ddddd00dd000dd0d00d00d0d000d0d0d00000d0dd000dd00ddddd0
+-- 155:0000000000ddddd00dd999dd0d99599d0d99959d0d99999d0dd999dd00ddddd0
 -- 158:d0000000d0000000d0000000d0000000d0000000d0000000d0000000d0000000
 -- 159:0000000d0000000d0000000d0000000d0000000d0000000d0000000d0000000d
 -- 160:0111111111000000100003331000000010300000100300001100000001111111
@@ -2632,8 +2787,10 @@ end
 -- 167:7777777000000077500050070000050700000007000000070000007777777770
 -- 168:0555555555000000500005555000000050500000500500005500000005555555
 -- 169:5555555000000055500050050000050500000005000000050000005555555550
--- 170:bb888888b8000000800000008000000080000000800000008000000080000000
--- 171:888888bb0000008b000000080000000800000008000000080000000800000008
+-- 170:0000000000eeeee00eedddee0edd8dde0eddd8de0eddddde0eedddee00eeeee0
+-- 171:0000000000ddddd00ddbbbdd0dbb5bbd0dbbb5bd0dbbbbbd0ddbbbdd00ddddd0
+-- 172:0000000000ddddd00ddaaadd0daa5aad0daaa5ad0daaaaad0ddaaadd00ddddd0
+-- 173:0000000000ddddd00dd999dd0d99599d0d99959d0d99999d0dd999dd00ddddd0
 -- 174:8000000080000000800000008000000080000000800000008000000080000000
 -- 175:0000000800000008000000080000000800000008000000080000000800000008
 -- 176:0222222222000000200003332000000020300000200300002200000002222222
@@ -2646,10 +2803,10 @@ end
 -- 183:6666666000000066500050060000050600000006000000060000006666666660
 -- 184:0ddddddddd000000d0000dddd0000000d0d00000d00d0000dd0000000ddddddd
 -- 185:ddddddd0000000ddd000d00d00000d0d0000000d0000000d000000ddddddddd0
--- 186:800000008000000080000000800000008000000080000000b8000000bb888888
--- 187:0000000800000008000000080000000800000008000000080000008b888888bb
--- 188:0d000000d0000000d0000000d0000000d0000000d00000000d00000000000000
--- 189:000000d00000000d0000000d0000000d0000000d0000000d000000d000000000
+-- 186:0000000000eeeee00eedddee0edd8dde0eddd8de0eddddde0eedddee00eeeee0
+-- 187:0000000000ddddd00dd666dd0d66566d0d66656d0d66666d0dd666dd00ddddd0
+-- 188:0000000000ddddd00dd333dd0d33533d0d33353d0d33333d0dd333dd00ddddd0
+-- 189:0000000000ddddd00dd222dd0d22522d0d22252d0d22222d0dd222dd00ddddd0
 -- 190:0eeeeeeeee000000e0000ddde0000000e0d00000e00d0000ee0000000eeeeeee
 -- 191:eeeeeee0000000eed000d00e00000d0e0000000e0000000e000000eeeeeeeee0
 -- 192:0111111011000011100030011000030110000001100003011000030110000301
@@ -2662,6 +2819,7 @@ end
 -- 199:0666666066000066600050066000050660000006600005066000050660000506
 -- 200:0555555055000055500050055000050550000005500005055000050550000505
 -- 201:0dddddd0dd0000ddd000d00dd0000d0dd000000dd0000d0dd0000d0dd0000d0d
+-- 202:0000000000eeeee00ee000ee0e00e00e0e000e0e0e00000e0ee000ee00eeeee0
 -- 203:08888880880000888000d00880000d088000000880000d0880000d0880000d08
 -- 204:0dddddd0dd0000ddd000d00dd0000d0dd000000dd0000d0dd0000d0dd0000d0d
 -- 205:0eeeeee0ee0000eee000d00ee0000d0ee000000ee0000d0ee0000d0ee0000d0e
