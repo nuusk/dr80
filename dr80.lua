@@ -158,18 +158,19 @@ local Assets = {
 				pill_white_border = 444,
 			},
 			settings = {
-				empty = 458,
-				difficulty_setting_levels = {
-					426,
-					427,
-					428,
-					429,
-				},
-				speed_setting_levels = {
+				empty = 412,
+				empty_focus = 413,
+				setting_levels = {
 					442,
 					443,
 					444,
 					445,
+				},
+				setting_levels_focus = {
+					426,
+					427,
+					428,
+					429,
 				},
 			},
 		},
@@ -441,7 +442,7 @@ function Grid:new(player)
 		{
 			text = "difficulty",
 			type = SETTING_TYPES.NUMBER,
-			value = 5,
+			value = 2,
 			min = 1,
 			max = 4,
 		},
@@ -1619,10 +1620,12 @@ end
 function Grid:draw_settings()
 	for i, s in ipairs(self.settings) do
 		local text_offset = self:get_offset(i)
-		local is_selected = self.selected_setting == i
-		self:print_setting_text(s.text, is_selected, text_offset)
+		local is_focused = self.selected_setting == i
+		self:print_setting_text(s.text, is_focused, text_offset)
 		local value_offset = text_offset + 6
-		self:draw_setting_value(s.value, s.min, s.max, is_selected, value_offset)
+		if s.type == SETTING_TYPES.NUMBER then
+			self:draw_number_setting(s.value, s.min, s.max, is_focused, value_offset)
+		end
 	end
 end
 
@@ -1638,18 +1641,24 @@ function Grid:print_setting_text(txt, is_selected, y_offset)
 	print(txt, x, y, color, true, 1, true)
 end
 
-function Grid:draw_setting_value(value, min, max, is_selected, y_offset)
+function Grid:draw_number_setting(value, min, max, is_focused, y_offset)
 	local x = (self.w - max) / 2
 	local y = self:cy(self.h) // 2 + y_offset
 	-- if is_selected
-	local levels = Assets.sprites.ui.settings.difficulty_setting_levels
 	local i = 0
+	local setting_levels_sprites = Assets.sprites.ui.settings.setting_levels
+	if is_focused == true then
+		setting_levels_sprites = Assets.sprites.ui.settings.setting_levels_focus
+	end
 	while i < max do
-		local empty = Assets.sprites.ui.settings.empty
-		if value > i then
-			empty = levels[i + 1]
+		local sprt = Assets.sprites.ui.settings.empty
+		if is_focused == true then
+			sprt = Assets.sprites.ui.settings.empty_focus
 		end
-		spr(empty, self:cx(x + i), y, 0)
+		if value > i then
+			sprt = setting_levels_sprites[i + 1]
+		end
+		spr(sprt, self:cx(x + i), y, 0)
 		i = i + 1
 	end
 end
@@ -2775,6 +2784,8 @@ end
 -- 153:0dddddd0dd0000ddd000d00dd0000d0dd0d0000dd00d000ddd0000dd0dddddd0
 -- 154:0000000000ddddd00dd000dd0d00d00d0d000d0d0d00000d0dd000dd00ddddd0
 -- 155:0000000000ddddd00dd999dd0d99599d0d99959d0d99999d0dd999dd00ddddd0
+-- 156:0000000000eeeee00ee000ee0e00e00e0e000e0e0e00000e0ee000ee00eeeee0
+-- 157:0000000000333330033000330300e00303000e03030000030330003300333330
 -- 158:d0000000d0000000d0000000d0000000d0000000d0000000d0000000d0000000
 -- 159:0000000d0000000d0000000d0000000d0000000d0000000d0000000d0000000d
 -- 160:0111111111000000100003331000000010300000100300001100000001111111
@@ -2787,10 +2798,10 @@ end
 -- 167:7777777000000077500050070000050700000007000000070000007777777770
 -- 168:0555555555000000500005555000000050500000500500005500000005555555
 -- 169:5555555000000055500050050000050500000005000000050000005555555550
--- 170:0000000000eeeee00eedddee0edd8dde0eddd8de0eddddde0eedddee00eeeee0
--- 171:0000000000ddddd00ddbbbdd0dbb5bbd0dbbb5bd0dbbbbbd0ddbbbdd00ddddd0
--- 172:0000000000ddddd00ddaaadd0daa5aad0daaa5ad0daaaaad0ddaaadd00ddddd0
--- 173:0000000000ddddd00dd999dd0d99599d0d99959d0d99999d0dd999dd00ddddd0
+-- 170:0000000000333330033ddd3303dd8dd303ddd8d303ddddd3033ddd3300333330
+-- 171:0000000000333330033bbb3303bb5bb303bbb5b303bbbbb3033bbb3300333330
+-- 172:0000000000333330033aaa3303aa5aa303aaa5a303aaaaa3033aaa3300333330
+-- 173:0000000000333330033999330399599303999593039999930339993300333330
 -- 174:8000000080000000800000008000000080000000800000008000000080000000
 -- 175:0000000800000008000000080000000800000008000000080000000800000008
 -- 176:0222222222000000200003332000000020300000200300002200000002222222
@@ -2804,9 +2815,9 @@ end
 -- 184:0ddddddddd000000d0000dddd0000000d0d00000d00d0000dd0000000ddddddd
 -- 185:ddddddd0000000ddd000d00d00000d0d0000000d0000000d000000ddddddddd0
 -- 186:0000000000eeeee00eedddee0edd8dde0eddd8de0eddddde0eedddee00eeeee0
--- 187:0000000000ddddd00dd666dd0d66566d0d66656d0d66666d0dd666dd00ddddd0
--- 188:0000000000ddddd00dd333dd0d33533d0d33353d0d33333d0dd333dd00ddddd0
--- 189:0000000000ddddd00dd222dd0d22522d0d22252d0d22222d0dd222dd00ddddd0
+-- 187:0000000000ddddd00ddbbbdd0dbb5bbd0dbbb5bd0dbbbbbd0ddbbbdd00ddddd0
+-- 188:0000000000ddddd00ddaaadd0daa5aad0daaa5ad0daaaaad0ddaaadd00ddddd0
+-- 189:0000000000ddddd00dd999dd0d99599d0d99959d0d99999d0dd999dd00ddddd0
 -- 190:0eeeeeeeee000000e0000ddde0000000e0d00000e00d0000ee0000000eeeeeee
 -- 191:eeeeeee0000000eed000d00e00000d0e0000000e0000000e000000eeeeeeeee0
 -- 192:0111111011000011100030011000030110000001100003011000030110000301
