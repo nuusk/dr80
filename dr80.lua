@@ -281,6 +281,41 @@ local Assets = {
 				face_victory = 206,
 			},
 		},
+		viruses = {
+			[1] = {
+				name = "red",
+				idle = { 258, 260, 262, 260, 264, 260, 258 },
+				panic = { 266, 268 },
+				game_over = { 270 },
+				victory = { 258, 260, 262, 260, 264, 260, 258 },
+				face_idle = 258,
+				face_panic = 266,
+				face_game_over = 270,
+				face_victory = 258,
+			},
+			[2] = {
+				name = "yellow",
+				idle = { 290, 292, 294, 292, 294, 296, 296, 296, 296, 294, 292, 290 },
+				panic = { 298, 300 },
+				game_over = { 302 },
+				victory = { 290, 292, 294, 292, 294, 296, 296, 296, 296, 294, 292, 290 },
+				face_idle = 290,
+				face_panic = 298,
+				face_game_over = 302,
+				face_victory = 290,
+			},
+			[3] = {
+				name = "blue",
+				idle = { 322, 324, 326, 328 },
+				panic = { 330, 332 },
+				game_over = { 334 },
+				victory = { 322, 324, 326, 328 },
+				face_idle = 322,
+				face_panic = 330,
+				face_game_over = 334,
+				face_victory = 322,
+			},
+		},
 	},
 }
 
@@ -1624,7 +1659,9 @@ function Grid:draw_settings()
 		self:print_setting_text(s.text, is_focused, text_offset)
 		local value_offset = text_offset + 6
 		if s.type == SETTING_TYPES.NUMBER then
-			self:draw_number_setting(s.value, s.min, s.max, is_focused, value_offset)
+			self:draw_number_setting(s.value, s.max, is_focused, value_offset)
+		elseif s.type == SETTING_TYPES.CHARACTER then
+			self:draw_character_setting(s.value, s.max, is_focused, value_offset)
 		end
 	end
 end
@@ -1641,10 +1678,9 @@ function Grid:print_setting_text(txt, is_selected, y_offset)
 	print(txt, x, y, color, true, 1, true)
 end
 
-function Grid:draw_number_setting(value, min, max, is_focused, y_offset)
+function Grid:draw_number_setting(value, max, is_focused, y_offset)
 	local x = (self.w - max) / 2
 	local y = self:cy(self.h) // 2 + y_offset
-	-- if is_selected
 	local i = 0
 	local setting_levels_sprites = Assets.sprites.ui.settings.setting_levels
 	if is_focused == true then
@@ -1661,6 +1697,11 @@ function Grid:draw_number_setting(value, min, max, is_focused, y_offset)
 		spr(sprt, self:cx(x + i), y, 0)
 		i = i + 1
 	end
+end
+
+function Grid:draw_character_setting(value, max, is_focused, y_offset)
+	local y = self:cy(self.h) // 2 + y_offset
+	local i = 0
 end
 
 function Grid:get_offset(i)
@@ -2631,8 +2672,8 @@ end
 -- <SPRITES>
 -- 000:c00cc00c0cc11cc0cc1221ccc122221cc2cc882cc322223c0c2222c000cccc00
 -- 001:c00cc00c0cc11cc0cc1221ccc122221cc28cc82cc322223c0c2222c000cccc00
--- 002:0c00ccccc2ccc3330ccc36630cc363330cc221880c2218810c12188c0c122181
--- 003:ccccc00c3332ccc233232ccc323222c08888122ccc18812cccc8812ccc18122c
+-- 002:0c00ccccc2ccc3330ccc36630cc321880cc218810c22188c0c1221810c122222
+-- 003:ccccc00c3332ccc233232ccc888812c0cc18812cccc8812ccc18122c2222222c
 -- 004:000000000c00ccccc2ccc3330ccc36630cc363330cc221880c2218810c12188c
 -- 005:00000000ccccc00c3332ccc233232ccc323222c08888122ccc18812cccc8812c
 -- 006:00c000000c20cccc00ccc3330ccc36630cc363330cc221880c1218880c121888
