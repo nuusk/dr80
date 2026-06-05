@@ -455,6 +455,7 @@ local CELL_TYPES = {
 
 local SETTING_TYPES = {
 	NUMBER = "number",
+	CHARACTER = "character",
 }
 
 -- Grid manager --
@@ -497,6 +498,8 @@ function Grid:new(player)
 		},
 	}
 	g.selected_setting = 1
+	g.selected_character = nil
+	g.settings_confirmed = false
 	if Game.players <= 2 then
 		g.px = (player - 1) * (g.w + 4) + 1
 		g.next_pill_x = g.w + 1
@@ -1654,7 +1657,7 @@ end
 
 function Grid:draw_settings()
 	for i, s in ipairs(self.settings) do
-		local text_offset = self:get_offset(i)
+		local text_offset = self:get_setting_y_offset(i)
 		local is_focused = self.selected_setting == i
 		self:print_setting_text(s.text, is_focused, text_offset)
 		local value_offset = text_offset + 6
@@ -1700,12 +1703,39 @@ function Grid:draw_number_setting(value, max, is_focused, y_offset)
 end
 
 function Grid:draw_character_setting(value, max, is_focused, y_offset)
-	local y = self:cy(self.h) // 2 + y_offset
-	local i = 0
+	local x = (self.w - max) / 2
+	local characters = Assets.sprites.characters
+	local i = 1
+	local j = 1
+	local k = i
+	while i <= max do
+		local sprt = characters[i].face_idle
+		local lx = self:cx(x + (k - 1) * 2) + (k - 1) * 3 - 2
+		local y = self:cy(self.h + j * 2 - 1) // 2 + y_offset + 2 + (j - 2) * 3
+
+		spr(sprt, lx, y, 0, 1, 0, 0, 2, 1)
+		local border_color = 14
+		if value == i then
+			border_color = 3
+		end
+		rectb(lx - 1, y - 1, (Grid.cell_size * 2) + 2, Grid.cell_size + 2, border_color)
+
+		if Game.character_already_taken(i) then
+			for q = 1, 9, 2 do
+				line(lx, y + q, lx + Grid.cell_size * 2 - 1, y + q, 15)
+			end
+		end
+		i = i + 1
+		k = k + 1
+		if k > 2 then
+			j = j + 1
+			k = 1
+		end
+	end
 end
 
-function Grid:get_offset(i)
-	local center_index = (#self.settings + 1) // 2
+function Grid:get_setting_y_offset(i)
+	local center_index = (#self.settings + 2) / 2
 	return (i - center_index) * 20
 end
 
@@ -1721,6 +1751,19 @@ function Grid:setting_prev()
 	if self.selected_setting == 0 then
 		self.selected_setting = #self.settings
 	end
+end
+
+function Grid:confirm_settings()
+	for _, s in ipairs(self.settings) do
+		if s.type == SETTING_TYPES.CHARACTER then
+			self.selected_character = s.value
+		end
+	end
+	self.settings_confirmed = true
+end
+
+function Grid:go_back_settings()
+	self.settings_confirmed = false
 end
 
 function Grid:selected_setting_plus()
@@ -1766,6 +1809,15 @@ function Game.setup_game(players)
 	end
 
 	Game.scene = SCENES.PARAMS
+end
+
+function Game.character_already_taken(i)
+	for _, b in ipairs(Game.grids) do
+		if b.selected_character == i then
+			return true
+		end
+	end
+	return false
 end
 
 function Game.find_leader(excluded_player)
@@ -2341,10 +2393,10 @@ end
 
 function Grid:update_params()
 	local keys = KEYMAPS[self.player]
-	if btnp(keys.UP) then
+	if btnp_repeat(keys.UP) then
 		self:setting_prev()
 	end
-	if btnp(keys.DOWN) then
+	if btnp_repeat(keys.DOWN) then
 		self:setting_next()
 	end
 	if btnp_repeat(keys.LEFT) then
@@ -2352,6 +2404,12 @@ function Grid:update_params()
 	end
 	if btnp_repeat(keys.RIGHT) then
 		self:selected_setting_plus()
+	end
+	if btnp(keys.A) then
+		self:confirm_settings()
+	end
+	if btnp(keys.B) then
+		self:go_back_settings()
 	end
 end
 
