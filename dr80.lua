@@ -1756,7 +1756,11 @@ end
 function Grid:confirm_settings()
 	for _, s in ipairs(self.settings) do
 		if s.type == SETTING_TYPES.CHARACTER then
-			self.selected_character = s.value
+			if Game.character_already_taken(s.value) then
+				Audio.play(Assets.sfx.character.invalid[s.value])
+			else
+				self.selected_character = s.value
+			end
 		end
 	end
 	self.settings_confirmed = true
