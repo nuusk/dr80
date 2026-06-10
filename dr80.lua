@@ -1655,6 +1655,10 @@ function Grid:draw_menu_border()
 	end
 end
 
+function Grid:draw_player_ready()
+	self:print_centered("READY")
+end
+
 function Grid:draw_settings()
 	for i, s in ipairs(self.settings) do
 		local text_offset = self:get_setting_y_offset(i)
@@ -1667,6 +1671,13 @@ function Grid:draw_settings()
 			self:draw_character_setting(s.value, s.max, is_focused, value_offset)
 		end
 	end
+end
+
+function Grid:print_centered(txt, y_offset)
+	local width = print(txt, 0, -100, 8, true, 1, true)
+	local x = (self:cx(0) + self:cx(self.w) - width) // 2
+	local y = self:cy(self.h) // 2
+	print(txt, x, y, 8, true, 1, true)
 end
 
 function Grid:print_setting_text(txt, is_selected, y_offset)
@@ -2419,7 +2430,11 @@ end
 
 function Grid:draw_player_menu()
 	self:draw_menu_border()
-	self:draw_settings()
+	if self.settings_confirmed then
+		self:draw_player_ready()
+	else
+		self:draw_settings()
+	end
 end
 
 function Grid:draw()
