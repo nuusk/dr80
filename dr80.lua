@@ -546,7 +546,6 @@ function Grid:new(player)
 	g.drop_phase = false
 	g.board = {}
 	g.phantom_half = {} -- pill that got cut cause it didnt fit on the board. will be used for counting rle
-	g.interval = 60
 	g.is_paused = false
 	g.character = nil
 	g.combo = 0
@@ -555,6 +554,7 @@ function Grid:new(player)
 	g.game_over = false
 	g.cascade_trigger = false
 
+	g.interval = 60
 	g.animation_queue = {}
 
 	return g
@@ -614,6 +614,13 @@ function Runes.get_random_color()
 	local bag = { "R", "S", "E" }
 	local i = math.random(#bag)
 	return bag[i]
+end
+
+function Grid:apply_settings()
+	self:generate_board()
+	self:generate_stones()
+	self:generate_character()
+	self:apply_speed()
 end
 
 function Grid:generate_board()
@@ -836,6 +843,17 @@ function Grid:animate_one(index, animation)
 	if animation.cur_frame >= animation.num_frames then
 		self.animation_queue[index] = nil
 	end
+end
+
+function Grid:apply_speed()
+	local intervals = {
+		200,
+		100,
+		60,
+		30,
+	}
+
+	self.interval = intervals[self.settings[2].value]
 end
 
 function Grid:generate_stones()
@@ -1912,9 +1930,7 @@ function Game.evaluate_readiness()
 	end
 	if all_ready == true then
 		for _, grid in pairs(Game.grids) do
-			grid:generate_board()
-			grid:generate_stones()
-			grid:generate_character()
+			grid:apply_settings()
 		end
 		Game.scene = SCENES.GAME
 	end
