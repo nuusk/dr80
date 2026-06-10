@@ -323,6 +323,7 @@ local SCENES = {
 	MENU = 0,
 	PARAMS = 1,
 	GAME = 2,
+	GAME_OVER = 3,
 }
 
 local MODES = {
@@ -1972,7 +1973,7 @@ function Game.eval_game_overs()
 		end
 	end
 
-	if game_overs == Game.players - 1 then
+	if game_overs >= Game.players - 1 then
 		Game.winner = current_winner
 		Game.grids[current_winner]:mark_as_winner()
 		return true
@@ -2504,6 +2505,7 @@ function TIC()
 			local is_won_by_clear = Game.eval_winner()
 			local is_won_by_elimination = Game.eval_game_overs()
 			if is_won_by_clear or is_won_by_elimination then
+				Game.scene = SCENES.GAME_OVER
 			else
 				Game.update_grids()
 			end
@@ -2513,6 +2515,9 @@ function TIC()
 		else
 			Game.spawn_grids()
 		end
+	elseif Game.scene == SCENES.GAME_OVER then
+		Game.draw_grids()
+		Game.animate_grids()
 	end
 
 	t = t + 1
