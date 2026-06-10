@@ -556,10 +556,6 @@ function Grid:new(player)
 
 	g.animation_queue = {}
 
-	g:generate_board()
-	g:generate_stones(5)
-	g:generate_character(player)
-
 	return g
 end
 
@@ -628,10 +624,10 @@ function Grid:generate_board()
 	end
 end
 
-function Grid:generate_character(index)
-	local asset = Assets.sprites.characters[index]
+function Grid:generate_character()
+	local asset = Assets.sprites.characters[self.selected_character]
 	self.character = {
-		id = index,
+		id = self.selected_character,
 		name = asset.name,
 		state = "idle",
 		anim_idle = {
@@ -841,20 +837,14 @@ function Grid:animate_one(index, animation)
 	end
 end
 
-function Grid:generate_stones(level)
+function Grid:generate_stones()
 	local presets = {
 		[1] = { n = 3, safe = 0.55 },
-		[2] = { n = 5, safe = 0.50 },
-		[3] = { n = 8, safe = 0.45 },
-		[4] = { n = 12, safe = 0.40 },
-		[5] = { n = 17, safe = 0.35 },
-		[6] = { n = 23, safe = 0.30 },
-		[7] = { n = 30, safe = 0.25 },
-		[8] = { n = 38, safe = 0.20 },
-		[9] = { n = 47, safe = 0.15 },
-		[10] = { n = 57, safe = 0.10 },
+		[2] = { n = 12, safe = 0.40 },
+		[3] = { n = 23, safe = 0.30 },
+		[4] = { n = 38, safe = 0.20 },
 	}
-	local preset = presets[level]
+	local preset = presets[self.settings[1].value]
 	if not preset then
 		Console.log("level too high")
 		return {}
@@ -1769,6 +1759,7 @@ function Grid:confirm_settings()
 		if s.type == SETTING_TYPES.CHARACTER then
 			if Game.character_already_taken(s.value) then
 				Audio.play(Assets.sfx.character.invalid[s.value])
+				return
 			else
 				self.selected_character = s.value
 			end
@@ -1912,7 +1903,20 @@ function Game.spawn_grids()
 		Game.grids_spawned = true
 	end
 end
-
+function Game.evaluate_readiness()
+	local all_ready = true
+	for _, grid in pairs(Game.grids) do
+		all_ready = all_ready and grid.settings_confirmed
+	end
+	if all_ready == true then
+		for _, grid in pairs(Game.grids) do
+			grid:generate_board()
+			grid:generate_stones()
+			grid:generate_character()
+		end
+		Game.scene = SCENES.GAME
+	end
+end
 function Game.update_params()
 	for _, grid in pairs(Game.grids) do
 		grid:update_params()
@@ -2468,6 +2472,7 @@ function TIC()
 	elseif Game.scene == SCENES.PARAMS then
 		Game.update_params()
 		Game.draw_player_menus()
+		Game.evaluate_readiness()
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
 			local do_we_have_a_winner = Game.eval_winner()
