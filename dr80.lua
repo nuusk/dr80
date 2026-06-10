@@ -993,6 +993,7 @@ function Grid:spawn_pill(pill)
 
 	local game_over = not (self:available(spawnx, spawny) and self:available(spawnx + 1, spawny))
 	if game_over then
+		Audio.play(Assets.sfx.character.overflow[self.character.id])
 		self:trigger_game_over()
 	else
 		self.active_pill = {
@@ -1006,7 +1007,6 @@ function Grid:spawn_pill(pill)
 end
 
 function Grid:trigger_game_over()
-	Audio.play(Assets.sfx.character.overflow[self.character.id])
 	self.game_over = true
 end
 
@@ -1903,6 +1903,7 @@ function Game.spawn_grids()
 		Game.grids_spawned = true
 	end
 end
+
 function Game.evaluate_readiness()
 	local all_ready = true
 	for _, grid in pairs(Game.grids) do
@@ -1917,6 +1918,7 @@ function Game.evaluate_readiness()
 		Game.scene = SCENES.GAME
 	end
 end
+
 function Game.update_params()
 	for _, grid in pairs(Game.grids) do
 		grid:update_params()
@@ -1959,7 +1961,7 @@ function Game.get_grid_width()
 	end
 end
 
-function Game.eval_winner()
+function Game.eval_game_overs()
 	local current_winner = 1
 	local game_overs = 0
 	for i, grid in ipairs(Game.grids) do
@@ -1976,6 +1978,30 @@ function Game.eval_winner()
 		return true
 	end
 	return false
+end
+
+function Game.eval_winner()
+	local current_winner = nil
+	for i, grid in ipairs(Game.grids) do
+		if grid.num_stones == 0 then
+			current_winner = i
+			Game.winner = i
+			Game.grids[i]:mark_as_winner()
+			break
+		end
+	end
+
+	if current_winner == nil then
+		return false
+	end
+
+	for i, grid in ipairs(Game.grids) do
+		if i ~= current_winner then
+			grid:trigger_game_over()
+		end
+	end
+
+	return true
 end
 
 function Grid:log_state()
@@ -2475,8 +2501,9 @@ function TIC()
 		Game.evaluate_readiness()
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
-			local do_we_have_a_winner = Game.eval_winner()
-			if do_we_have_a_winner then
+			local is_won_by_clear = Game.eval_winner()
+			local is_won_by_elimination = Game.eval_game_overs()
+			if is_won_by_clear or is_won_by_elimination then
 			else
 				Game.update_grids()
 			end
