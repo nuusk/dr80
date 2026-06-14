@@ -465,6 +465,17 @@ local SETTING_TYPES = {
 
 local Grid = {
 	cell_size = 8,
+	intervals = {
+		80,
+		60,
+		40,
+		30,
+		-- first four are settings based.
+		-- next interval levels can be changed during the game as the game progress
+		20,
+		15,
+		10,
+	},
 }
 Grid.__index = Grid
 
@@ -556,7 +567,7 @@ function Grid:new(player)
 	g.game_over = false
 	g.cascade_trigger = false
 
-	g.interval = 60
+	g.interval_level = 0
 	g.animation_queue = {}
 
 	return g
@@ -848,14 +859,13 @@ function Grid:animate_one(index, animation)
 end
 
 function Grid:apply_speed()
-	local intervals = {
-		200,
-		100,
-		60,
-		30,
-	}
+	self.interval_level = self.settings[2].value
+	self.interval = self.intervals[self.settings[2].value]
+end
 
-	self.interval = intervals[self.settings[2].value]
+function Grid:bump_speed()
+	self.interval_level = math.min(#self.intervals, self.interval_level + 1)
+	self.interval = self.intervals[self.interval_level]
 end
 
 function Grid:generate_stones()
@@ -2408,18 +2418,16 @@ function Grid:update()
 	if btnp(keys.PAUSE) then
 		self:log_state()
 	end
-	if Game.players > 2 and btnp(keys.SUPER) then
-		self:cycle_target()
-
-		-- Game.send_surprises(2, 3)
+	if btnp(keys.SUPER) then
+		-- self:bump_speed()
 		-- for testing
 	end
 
 	local effective_interval = self.interval
 	if btn(keys.DOWN) and self.active_pill ~= nil then
-		effective_interval = self.interval / 10
+		effective_interval = math.max(5, self.interval / 10)
 	elseif self.active_pill == nil then
-		effective_interval = self.interval / 5
+		effective_interval = math.max(5, self.interval / 5)
 	end
 
 	if btnp(keys.UP) then
@@ -3184,4 +3192,3 @@ end
 -- <PALETTE>
 -- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
