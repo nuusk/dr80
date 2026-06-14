@@ -286,7 +286,7 @@ local Assets = {
 		viruses = {
 			[1] = {
 				name = "red",
-				idle = { 258, 260, 262, 260, 264, 260, 258 },
+				idle = { 258, 258, 258, 258, 258, 258, 258, 260, 262, 260, 264, 260, 258 },
 				panic = { 266, 268 },
 				game_over = { 270 },
 				victory = { 258, 260, 262, 260, 264, 260, 258 },
@@ -340,6 +340,7 @@ local Game = {
 	grids = {},
 	players = 1,
 	winner = 0,
+	frame = 0,
 	grids_spawned = false,
 }
 
@@ -357,12 +358,16 @@ local Audio = {
 	},
 }
 
-function Audio.play_bgm(track, loop)
-	if Audio.bgm == track then
+function Audio.play_bgm(track, tempo)
+	if Audio.bgm == track and tempo == Audio.tempo then
 		return
+	elseif Audio.bgm == track and tempo ~= Audio.tempo then
+		music(track, -1, -1, true, false, tempo or -1)
+	else
+		music(track, 0, 0, true, false, tempo or -1)
 	end
-	music(track, 0, 0, loop ~= false)
 	Audio.bgm = track
+	Audio.tempo = tempo
 end
 
 function Audio.stop_bgm()
@@ -563,6 +568,7 @@ function Grid:new(player)
 	g.character = nil
 	g.combo = 0
 	g.pending_surprises = 0
+	g.pending_speed_up = 0
 	g.queued_surprises = {}
 	g.game_over = false
 	g.cascade_trigger = false
@@ -593,7 +599,7 @@ function Animation:new(name, options)
 	}
 
 	if name == ANIMATIONS.DROP_TRAIL then
-		animation.num_frames = 30
+		animation.num_frames = 15
 		animation.start_x1 = options.start_x1
 		animation.start_y1 = options.start_y1
 		animation.start_x2 = options.start_x2
@@ -604,7 +610,7 @@ function Animation:new(name, options)
 		animation.end_y2 = options.end_y2
 		animation.rotation = options.rotation
 	elseif name == ANIMATIONS.DISAPPEARING_PILL then
-		animation.num_frames = 20
+		animation.num_frames = 10
 		animation.x = options.x
 		animation.y = options.y
 		animation.sprites = Assets.sprites.fx.disappear[options.color]
@@ -634,6 +640,12 @@ function Grid:apply_settings()
 	self:generate_stones()
 	self:generate_character()
 	self:apply_speed()
+end
+
+function Grid:initialize_those_animated_viruses()
+	self.enemies = {
+		-- TODO: how to draw them
+	}
 end
 
 function Grid:generate_board()
@@ -695,7 +707,7 @@ function Grid:draw_additionals()
 	spr(sprc, self:cx(self.character_x + 1), self:cy(5), 0, 1, 0, 0, 1, 1)
 end
 
-function Grid:draw_score()
+function Grid:draw_num_stones()
 	local cx = self:cx(self.score_x)
 	local cy = self:cy(self.score_y - 1)
 
@@ -706,6 +718,11 @@ function Grid:draw_score()
 		offset = 2
 	end
 	print(self.num_stones, self:cx(self.score_x) + offset, self:cy(self.score_y) - self.cell_size + 1, 8, true)
+end
+
+function Grid:draw_score()
+	-- TODO: make it pretty
+	print(self.num_stones, self:cx(23), self:cy(self.score_y) - self.cell_size + 1, 8, true)
 end
 
 function Grid:should_panic(t)
@@ -802,7 +819,6 @@ end
 
 function Grid:animate_all()
 	for index, animation in pairs(self.animation_queue) do
-		self:animate_one(index, animation)
 		if index ~= nil then
 			self:animate_one(index, animation)
 		end
@@ -864,8 +880,9 @@ function Grid:apply_speed()
 end
 
 function Grid:bump_speed()
-	self.interval_level = math.min(#self.intervals, self.interval_level + 1)
+	self.interval_level = math.min(#self.intervals, self.interval_level + self.pending_speed_up)
 	self.interval = self.intervals[self.interval_level]
+	self.pending_speed_up = 0
 end
 
 function Grid:generate_stones()
@@ -933,6 +950,10 @@ function Grid:queue_surprises(num_surprises)
 	self.pending_surprises = self.pending_surprises + num_surprises
 end
 
+function Grid:queue_speed_up(bump_levels)
+	self.pending_speed_up = self.pending_speed_up + bump_levels
+end
+
 function Grid:reset_combo()
 	self.combo = 0
 end
@@ -950,6 +971,51 @@ function Grid:draw_board()
 				else
 					spr(self.board[y][x].spr, cx, cy, 0)
 				end
+			end
+		end
+	end
+end
+
+function Grid:draw_stage()
+	local sprites = Assets.sprites.viruses[1].idle
+	local i = (t // 8) % #sprites + 1
+	local frame = sprites[i]
+	spr(frame, self:cx(19), self:cy(13), 0, 1, 0, 0, 2, 2)
+
+	sprites = Assets.sprites.viruses[2].idle
+	local i = (t // 8) % #sprites + 1
+	local frame = sprites[i]
+	spr(frame, self:cx(22), self:cy(13), 0, 1, 0, 0, 2, 2)
+
+	sprites = Assets.sprites.viruses[3].idle
+	local i = (t // 8) % #sprites + 1
+	local frame = sprites[i]
+	spr(frame, self:cx(25), self:cy(13), 0, 1, 0, 0, 2, 2)
+end
+
+function Grid:draw_stage_border()
+	local s = self.w + 4
+	local e = self.w + 15
+	for y = 0, self.h + 1 do
+		local cy = self:cy(y - 1)
+		for x = s, e do
+			local ok = false
+			if y == self.h + 1 then
+				ok = true
+			end
+			if y == 0 then
+				ok = true
+			end
+			if x == s or x == e then
+				ok = true
+			end
+			if ok == true then
+				local cx = self:cx(x - 1)
+				local sprt = Assets.sprites.ui.background.single
+				if self.game_over then
+					sprt = Assets.sprites.ui.background.single_dark_gray
+				end
+				spr(sprt, cx, cy, 0)
 			end
 		end
 	end
@@ -1839,6 +1905,7 @@ end
 
 function Game.setup_game(players)
 	Game.players = players
+	Game.frame = 0
 
 	for i = 1, players, 1 do
 		local grid = Grid:new(i)
@@ -1924,6 +1991,15 @@ function Game.animate_grids()
 	end
 end
 
+function Game.evaluate_speed_up()
+	-- every minute, speed up
+	if Game.frame % 3600 == 0 then
+		for _, grid in pairs(Game.grids) do
+			grid:queue_speed_up(1)
+		end
+	end
+end
+
 function Game.spawn_grids()
 	local spawn_ended = true
 	for _, grid in pairs(Game.grids) do
@@ -1943,6 +2019,10 @@ function Game.evaluate_readiness()
 	if all_ready == true then
 		for _, grid in pairs(Game.grids) do
 			grid:apply_settings()
+		end
+
+		if Game.players == 1 then
+			Game.grids[1].stage_visible = true
 		end
 
 		Audio.play_bgm(Assets.music.fever)
@@ -1980,7 +2060,7 @@ end
 
 function Game.get_grid_width()
 	if Game.players == 1 then
-		return 9
+		return 14
 	elseif Game.players == 2 then
 		return 11
 	elseif Game.players == 3 then
@@ -1993,6 +2073,9 @@ function Game.get_grid_width()
 end
 
 function Game.eval_game_overs()
+	if Game.players == 1 then
+		return
+	end
 	local current_winner = 1
 	local game_overs = 0
 	for i, grid in ipairs(Game.grids) do
@@ -2012,6 +2095,9 @@ function Game.eval_game_overs()
 end
 
 function Game.eval_winner()
+	if Game.players == 1 then
+		return
+	end
 	local current_winner = nil
 	for i, grid in ipairs(Game.grids) do
 		if grid.num_stones == 0 then
@@ -2044,11 +2130,17 @@ function Grid:log_state()
 	Console.log(self.cascade_trigger)
 end
 
+-- like the stage with viruses, bosses etc
+
 function Grid:eval()
 	if self.active_pill == nil then
 		if #self.queued_surprises > 0 then
 			self:drop_queued_surprises()
 			return
+		end
+
+		if self.pending_speed_up > 0 then
+			self:bump_speed()
 		end
 	end
 
@@ -2092,6 +2184,10 @@ function Grid:eval()
 end
 
 function Grid:send_surprises(combo, target)
+	if Game.players == 1 then
+		return
+	end
+
 	local victim = 0
 	if Game.players == 2 then
 		if self.player == 1 then
@@ -2347,6 +2443,12 @@ local players_menu
 players_menu = Menu:new({
 	options = {
 		{
+			label = "1 PLAYER  ",
+			callback = function()
+				Game.setup_game(1)
+			end,
+		},
+		{
 			label = "2 PLAYERS",
 			callback = function()
 				Game.setup_game(2)
@@ -2382,13 +2484,13 @@ main_menu = Menu:new({
 				Game.mode = MODES.CLASSIC
 			end,
 		},
-		{
-			label = "CAMPAIGN",
-			callback = function()
-				Game.menu = players_menu
-				Game.mode = MODES.CAMPAIGN
-			end,
-		},
+		-- {
+		-- 	label = "CAMPAIGN",
+		-- 	callback = function()
+		-- 		Game.menu = players_menu
+		-- 		Game.mode = MODES.CAMPAIGN
+		-- 	end,
+		-- },
 		{
 			label = "ENDLESS",
 			callback = function()
@@ -2505,7 +2607,7 @@ function Grid:draw()
 	self:draw_queued_surprises()
 	self:draw_character(t)
 	if self.game_over ~= true then
-		self:draw_score()
+		self:draw_num_stones()
 	end
 	if Game.players <= 2 then
 		self:draw_step()
@@ -2514,6 +2616,11 @@ function Grid:draw()
 	self:draw_next_pill()
 	-- TODO: consider removing
 	-- self:draw_target()
+	if self.stage_visible then
+		self:draw_stage_border()
+		self:draw_stage()
+		self:draw_score()
+	end
 end
 
 function TIC()
@@ -2541,6 +2648,7 @@ function TIC()
 
 			Game.draw_grids()
 			Game.animate_grids()
+			Game.evaluate_speed_up()
 		else
 			Game.spawn_grids()
 		end
@@ -2550,6 +2658,7 @@ function TIC()
 	end
 
 	t = t + 1
+	Game.frame = Game.frame + 1
 	Console.draw()
 end
 
