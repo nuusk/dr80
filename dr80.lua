@@ -149,6 +149,7 @@ local Assets = {
 					501,
 				},
 				single_transparent = 474,
+				single_transparent_top_border = 458,
 				square_2x2 = 426,
 				pill_dark = {
 					480,
@@ -533,7 +534,7 @@ function Grid:new(player)
 		g.target_selected_x = g.w + 1
 		g.target_selected_y = g.h - 7
 	else
-		g.px = (player - 1) * (g.w + 1) + 1
+		g.px = (player - 1) * (g.w + 1) + 2
 		g.next_pill_x = g.w - 5
 		if Game.players == 4 then
 			g.next_pill_x = g.w - 4
@@ -1606,7 +1607,7 @@ function Grid:get_spawn_tile_art(x, y, border, transparent)
 	end
 	if transparent == true then
 		frames = Assets.sprites.fx.spawn_animation_temp_transparent
-		base = Assets.sprites.ui.background.single_transparent
+		base = Assets.sprites.ui.background.single_transparent_top_border
 	end
 
 	return frames, base
@@ -1744,7 +1745,7 @@ function Grid:draw_border()
 				local cx = self:cx(x - 1)
 				local sprt = Assets.sprites.ui.background.single
 				if transparent == true then
-					sprt = Assets.sprites.ui.background.single_transparent
+					sprt = Assets.sprites.ui.background.single_transparent_top_border
 				end
 				if self.game_over then
 					sprt = Assets.sprites.ui.background.single_dark_gray
@@ -1771,7 +1772,7 @@ function Grid:draw_menu_border()
 			end
 			if ok == true then
 				local cx = self:cx(x - 1)
-				local sprt = Assets.sprites.ui.background.single_transparent
+				local sprt = Assets.sprites.ui.background.single_dark_gray
 				spr(sprt, cx, cy, 0)
 			end
 		end
@@ -2663,6 +2664,8 @@ function TIC()
 	Console.update()
 	cls(0)
 
+	rectb(0, 0, 240, 136, 12)
+
 	if Game.scene == SCENES.MENU then
 		Game.menu:update()
 		Game.menu:draw()
@@ -3159,7 +3162,7 @@ end
 -- 199:0666666066000066600050066000050660000006600005066000050660000506
 -- 200:0555555055000055500050055000050550000005500005055000050550000505
 -- 201:0dddddd0dd0000ddd000d00dd0000d0dd000000dd0000d0dd0000d0dd0000d0d
--- 202:0000000000eeeee00ee000ee0e00e00e0e000e0e0e00000e0ee000ee00eeeee0
+-- 202:eeeeeeeeee0000eee000e00ee0000e0ee0e0000ee00e000eee0000ee0eeeeee0
 -- 203:08888880880000888000d00880000d088000000880000d0880000d0880000d08
 -- 204:0dddddd0dd0000ddd000d00dd0000d0dd000000dd0000d0dd0000d0dd0000d0d
 -- 205:0eeeeee0ee0000eee000d00ee0000d0ee000000ee0000d0ee0000d0ee0000d0e
@@ -3337,4 +3340,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
