@@ -182,6 +182,7 @@ local Assets = {
 				{ name = "S", W = 506, E = 507, N = 493, S = 509 },
 				{ name = "E", W = 488, E = 489, N = 494, S = 510 },
 			},
+			dark_pills = { 482, 498, 480 },
 			viruses = {
 				R = 256,
 				S = 288,
@@ -557,6 +558,9 @@ function Grid:new(player)
 	g.cell_size = Grid.cell_size
 	g.level = 9
 	g.num_stones = 0
+	g.num_red = 0
+	g.num_yellow = 0
+	g.num_blue = 0
 	g.next_pill = nil
 	g.static_pills = {}
 	g.active_pill = nil
@@ -924,19 +928,34 @@ function Grid:generate_stones()
 		}
 	end
 
-	self.num_stones = preset.n
+	self:count_stones()
 end
 
 function Grid:count_stones()
 	local count = 0
+	local red = 0
+	local yellow = 0
+	local blue = 0
 	for y = 0, self.h - 1, 1 do
 		for x = 0, self.w - 1, 1 do
 			if self.board[y][x] ~= nil and self.board[y][x].type == CELL_TYPES.STONE then
 				count = count + 1
+				if self.board[y][x].color == "R" then
+					red = red + 1
+				end
+				if self.board[y][x].color == "S" then
+					yellow = yellow + 1
+				end
+				if self.board[y][x].color == "E" then
+					blue = blue + 1
+				end
 			end
 		end
 	end
 
+	self.num_red = red
+	self.num_yellow = yellow
+	self.num_blue = blue
 	self.num_stones = count
 end
 
@@ -977,20 +996,27 @@ function Grid:draw_board()
 end
 
 function Grid:draw_stage()
-	local sprites = Assets.sprites.viruses[1].idle
-	local i = (t // 8) % #sprites + 1
-	local frame = sprites[i]
-	spr(frame, self:cx(19), self:cy(13), 0, 1, 0, 0, 2, 2)
+	for v = 1, 3 do
+		local sprites = Assets.sprites.viruses[v].idle
+		local i = (t // 8) % #sprites + 1
+		local frame = sprites[i]
+		local cx = self:cx(16 + v * 3)
+		local num_viruses = 0
+		if v == 1 then
+			num_viruses = self.num_red
+		elseif v == 2 then
+			num_viruses = self.num_yellow
+		elseif v == 3 then
+			num_viruses = self.num_blue
+		end
 
-	sprites = Assets.sprites.viruses[2].idle
-	local i = (t // 8) % #sprites + 1
-	local frame = sprites[i]
-	spr(frame, self:cx(22), self:cy(13), 0, 1, 0, 0, 2, 2)
+		local y = 15
+		for w = 1, num_viruses do
+			spr(Assets.sprites.pieces.dark_pills[v], cx, self:cy(y - w), 0, 1, 0, 0, 2, 1)
+		end
 
-	sprites = Assets.sprites.viruses[3].idle
-	local i = (t // 8) % #sprites + 1
-	local frame = sprites[i]
-	spr(frame, self:cx(25), self:cy(13), 0, 1, 0, 0, 2, 2)
+		spr(frame, cx, self:cy(y - num_viruses - 2), 0, 1, 0, 0, 2, 2)
+	end
 end
 
 function Grid:draw_stage_border()
