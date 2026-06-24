@@ -289,7 +289,7 @@ local Assets = {
 				name = "red",
 				idle = { 258, 258, 258, 258, 258, 258, 258, 260, 262, 260, 264, 260, 258 },
 				panic = { 266, 268 },
-				game_over = { 270 },
+				game_over = 270,
 				victory = { 258, 260, 262, 260, 264, 260, 258 },
 				face_idle = 258,
 				face_panic = 266,
@@ -300,7 +300,7 @@ local Assets = {
 				name = "yellow",
 				idle = { 290, 292, 294, 292, 294, 296, 296, 296, 296, 294, 292, 290 },
 				panic = { 298, 300 },
-				game_over = { 302 },
+				game_over = 302,
 				victory = { 290, 292, 294, 292, 294, 296, 296, 296, 296, 294, 292, 290 },
 				face_idle = 290,
 				face_panic = 298,
@@ -311,7 +311,7 @@ local Assets = {
 				name = "blue",
 				idle = { 322, 324, 326, 328 },
 				panic = { 330, 332 },
-				game_over = { 334 },
+				game_over = 334,
 				victory = { 322, 324, 326, 328 },
 				face_idle = 322,
 				face_panic = 330,
@@ -725,8 +725,8 @@ function Grid:draw_num_stones()
 end
 
 function Grid:draw_score()
-	-- TODO: make it pretty
-	print(self.num_stones, self:cx(23), self:cy(self.score_y) - self.cell_size + 1, 8, true)
+	-- TODO: make it pretty. or should we remove it?
+	-- print(self.num_stones, self:cx(23), self:cy(self.score_y) - self.cell_size + 1, 8, true)
 end
 
 function Grid:should_panic(t)
@@ -891,10 +891,10 @@ end
 
 function Grid:generate_stones()
 	local presets = {
-		[1] = { n = 3, safe = 0.55 },
+		[1] = { n = 6, safe = 0.55 },
 		[2] = { n = 12, safe = 0.40 },
-		[3] = { n = 23, safe = 0.30 },
-		[4] = { n = 38, safe = 0.20 },
+		[3] = { n = 24, safe = 0.30 },
+		[4] = { n = 39, safe = 0.20 },
 	}
 	local preset = presets[self.settings[1].value]
 	if not preset then
@@ -997,9 +997,6 @@ end
 
 function Grid:draw_stage()
 	for v = 1, 3 do
-		local sprites = Assets.sprites.viruses[v].idle
-		local i = (t // 8) % #sprites + 1
-		local frame = sprites[i]
 		local cx = self:cx(16 + v * 3)
 		local num_viruses = 0
 		if v == 1 then
@@ -1013,6 +1010,19 @@ function Grid:draw_stage()
 		local y = 15
 		for w = 1, num_viruses do
 			spr(Assets.sprites.pieces.dark_pills[v], cx, self:cy(y - w), 0, 1, 0, 0, 2, 1)
+		end
+
+		local frame = 0
+		if num_viruses == 0 then
+			frame = Assets.sprites.viruses[v].game_over
+		elseif num_viruses == 1 then
+			local sprites = Assets.sprites.viruses[v].panic
+			local i = (t // 10) % #sprites + 1
+			frame = sprites[i]
+		else
+			local sprites = Assets.sprites.viruses[v].idle
+			local i = (t // 8) % #sprites + 1
+			frame = sprites[i]
 		end
 
 		spr(frame, cx, self:cy(y - num_viruses - 2), 0, 1, 0, 0, 2, 2)
@@ -3325,5 +3335,6 @@ end
 -- </TRACKS>
 
 -- <PALETTE>
--- 000:3030345d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
+-- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
