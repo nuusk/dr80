@@ -522,6 +522,7 @@ function Grid:new(player)
 	g.selected_setting = 1
 	g.selected_character = nil
 	g.settings_confirmed = false
+	g.character_flip = 0
 	if Game.players <= 2 then
 		g.px = (player - 1) * (g.w + 4) + 1
 		g.next_pill_x = g.w + 1
@@ -534,6 +535,13 @@ function Grid:new(player)
 		g.target_y = g.h - 8
 		g.target_selected_x = g.w + 1
 		g.target_selected_y = g.h - 7
+		if g.player == 2 then
+			g.px = g.px + 2
+			g.character_x = -3
+			g.next_pill_x = -3
+			g.score_x = -3
+			g.character_flip = 1
+		end
 	else
 		g.px = (player - 1) * (g.w + 1) + 1
 		g.next_pill_x = g.w - 5
@@ -704,7 +712,7 @@ end
 function Grid:draw_additionals()
 	local cx = self:cx(self.character_x)
 	local cx2 = self:cx(self.character_x + 1)
-	local sprc = Assets.sprites.ui.background.single
+	local sprc = Assets.sprites.ui.background.single_dark_gray
 
 	-- spr(Assets.sprites.ui.background.pill_dark_gray, cx, self:cy(-1), 0, 1, 0, 0, 2, 1)
 	-- spr(Assets.sprites.ui.background.pill_dark_gray, cx, self:cy(1), 0, 1, 0, 0, 2, 1)
@@ -788,7 +796,7 @@ function Grid:draw_character(t)
 	end
 
 	if self.game_over == true then
-		spr(char.anim_game_over.sprites[1], cx, cy, 0, 1, 0, 0, char.w, char.h)
+		spr(char.anim_game_over.sprites[1], cx, cy, 0, 1, self.character_flip, 0, char.w, char.h)
 		local gy = self:cy(self.character_y - 2)
 		spr(Assets.sprites.fx.cloud, cx, gy, 0, 1, 0, 0, 2, 1)
 		local rain = Assets.sprites.fx.cloud_raining
@@ -804,7 +812,7 @@ function Grid:draw_character(t)
 		local sprites = Assets.sprites.characters[char.id].victory
 		local i = (t // 12) % #sprites + 1
 		local frame = sprites[i]
-		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
+		spr(frame, cx, cy, 0, 1, self.character_flip, 0, char.w, char.h)
 		return
 	end
 
@@ -812,13 +820,13 @@ function Grid:draw_character(t)
 		local sprites = Assets.sprites.characters[char.id].panic
 		local i = (t // 12) % #sprites + 1
 		local frame = sprites[i]
-		spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
+		spr(frame, cx, cy, 0, 1, self.character_flip, 0, char.w, char.h)
 		return
 	end
 
 	local i = (t // 8) % #char.anim_idle.sprites + 1
 	local frame = char.anim_idle.sprites[i]
-	spr(frame, cx, cy, 0, 1, 0, 0, char.w, char.h)
+	spr(frame, cx, cy, 0, 1, self.character_flip, 0, char.w, char.h)
 end
 
 function Grid:add_animation_to_queue(name, options)
@@ -1052,10 +1060,10 @@ function Grid:draw_stage_border()
 			end
 			if ok == true then
 				local cx = self:cx(x - 1)
-				local sprt = Assets.sprites.ui.background.single
-				if self.game_over then
-					sprt = Assets.sprites.ui.background.single_dark_gray
-				end
+				local sprt = Assets.sprites.ui.background.single_dark_gray
+				-- if self.game_over then
+				-- 	sprt = Assets.sprites.ui.background.single_dark_gray
+				-- end
 				spr(sprt, cx, cy, 0)
 			end
 		end
@@ -1607,7 +1615,7 @@ function Grid:get_spawn_tile_art(x, y, border, transparent)
 		end
 	end
 	if border == true then
-		base = Assets.sprites.ui.background.single
+		base = Assets.sprites.ui.background.single_dark_gray
 	end
 	if transparent == true then
 		frames = Assets.sprites.fx.spawn_animation_temp_transparent
@@ -1707,6 +1715,9 @@ function Grid:spawn_grid(t)
 					transparent = true
 					Game.dont_draw_top_border_positions[self.px + x - 1] = true
 				end
+				if Game.players <= 2 and (x == 1 or x == self.w) then
+					Game.dont_draw_top_border_positions[self.px + x - 1] = true
+				end
 				if Game.players == 4 and (x == 1 or x == self.w) then
 					Game.dont_draw_top_border_positions[self.px + x - 1] = true
 				end
@@ -1751,13 +1762,13 @@ function Grid:draw_border()
 			end
 			if ok == true then
 				local cx = self:cx(x - 1)
-				local sprt = Assets.sprites.ui.background.single
+				local sprt = Assets.sprites.ui.background.single_dark_gray
 				if transparent == true then
 					sprt = Assets.sprites.ui.background.single_transparent_top_border
 				end
-				if self.game_over then
-					sprt = Assets.sprites.ui.background.single_dark_gray
-				end
+				-- if self.game_over then
+				-- 	sprt = Assets.sprites.ui.background.single_dark_gray
+				-- end
 				spr(sprt, cx, cy, 0)
 			end
 		end
@@ -2099,6 +2110,11 @@ function Game.draw_screen_border()
 	local x_max = 240 // Grid.cell_size
 	local y_max = 136 // Grid.cell_size
 	local ok = true
+	local sprt = Assets.sprites.ui.background.single_dark_gray
+	-- TODO: make every single the same!
+	-- if Game.scene == SCENES.GAME or Game.scene == SCENES.GAME_OVER then
+	-- 	sprt = Assets.sprites.ui.background.single
+	-- end
 	for x = 0, x_max - 1 do
 		for y = 0, y_max - 1 do
 			ok = true
@@ -2109,7 +2125,7 @@ function Game.draw_screen_border()
 				ok = false
 			end
 			if ok == true then
-				spr(Assets.sprites.ui.background.single_dark_gray, x * Grid.cell_size, y * Grid.cell_size, 0)
+				spr(sprt, x * Grid.cell_size, y * Grid.cell_size, 0)
 			end
 			::continue::
 		end
@@ -2730,7 +2746,6 @@ function TIC()
 		else
 			Game.spawn_grids()
 		end
-
 		Game.draw_screen_border()
 	elseif Game.scene == SCENES.GAME_OVER then
 		Game.draw_grids()
@@ -3247,7 +3262,7 @@ end
 -- 242:0ccccccccc777777c7777555c7777777c7777777c7777777cc7777770ccccccc
 -- 243:ccccccc0777777cc5777577c7777757c7777777c7777777c777777ccccccccc0
 -- 244:0cccccc0cc9999ccc999b99cc9999b9cc999999cc999999ccc9999cc0cccccc0
--- 245:0cccccc0ccffffcccfffdffccffffdfccffffffccffffffcccffffcc0cccccc0
+-- 245:0cccccc0ccffffcccfffeffccffffefccffffffccffefffcccffffcc0cccccc0
 -- 246:0cccccc0ccaaaacccaaabaaccaaaabacca9aaaaccaa9aaacccaaaacc0cccccc0
 -- 247:0cccccc0cceeeeccceeedeecceeeedeccefeeeecceefeeeccceeeecc0cccccc0
 -- 248:0ccccccccceeeeeeceeeedddceeeeeeecefeeeeeceefeeeecceeeeee0ccccccc
@@ -3382,3 +3397,4 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
