@@ -344,6 +344,7 @@ local Game = {
 	winner = 0,
 	frame = 0,
 	grids_spawned = false,
+	dont_draw_top_border_positions = {},
 }
 
 -- Audio manager --
@@ -534,20 +535,23 @@ function Grid:new(player)
 		g.target_selected_x = g.w + 1
 		g.target_selected_y = g.h - 7
 	else
-		g.px = (player - 1) * (g.w + 1) + 2
+		g.px = (player - 1) * (g.w + 1) + 1
 		g.next_pill_x = g.w - 5
-		if Game.players == 4 then
-			g.next_pill_x = g.w - 4
-		end
 		g.next_pill_y = -2
 		g.character_x = g.w - 3
-		if Game.players == 4 then
-			g.character_x = g.w - 2
-		end
 		g.character_y = -2
 		g.score_x = 1
+		if Game.players == 3 then
+			g.px = g.px + 1
+		end
 		if Game.players == 4 then
+			g.next_pill_x = g.w - 4
+			g.character_x = g.w - 2
 			g.score_x = 0
+			if g.player > 2 then
+				-- hack to make grids more centered
+				g.px = g.px + 1
+			end
 		end
 		g.score_y = -1
 		g.target_x = 0
@@ -1701,6 +1705,10 @@ function Grid:spawn_grid(t)
 				border = true
 				if x > 1 and x < self.w then
 					transparent = true
+					Game.dont_draw_top_border_positions[self.px + x - 1] = true
+				end
+				if Game.players == 4 and (x == 1 or x == self.w) then
+					Game.dont_draw_top_border_positions[self.px + x - 1] = true
 				end
 			end
 			if x == 0 or x == self.w + 1 then
@@ -1757,7 +1765,11 @@ function Grid:draw_border()
 end
 
 function Grid:draw_menu_border()
-	for y = 0, self.h + 1 do
+	local start = 0
+	if Game.players > 2 then
+		start = -1
+	end
+	for y = start, self.h + 1 do
 		local cy = self:cy(y - 1)
 		for x = 0, self.w + 1 do
 			local ok = false
@@ -1766,6 +1778,9 @@ function Grid:draw_menu_border()
 			end
 			if y == 0 then
 				ok = true
+				if Game.players > 2 then
+					ok = false
+				end
 			end
 			if x == 0 or x == self.w + 1 then
 				ok = true
@@ -1904,6 +1919,7 @@ end
 
 function Grid:go_back_settings()
 	self.settings_confirmed = false
+	self.selected_character = nil
 end
 
 function Grid:selected_setting_plus()
@@ -2079,12 +2095,33 @@ function Game.draw_player_menus()
 	end
 end
 
+function Game.draw_screen_border()
+	local x_max = 240 // Grid.cell_size
+	local y_max = 136 // Grid.cell_size
+	local ok = true
+	for x = 0, x_max - 1 do
+		for y = 0, y_max - 1 do
+			ok = true
+			if (x > 0 and x < x_max - 1) and (y > 0 and y < y_max - 1) then
+				goto continue
+			end
+			if y == 0 and Game.dont_draw_top_border_positions[x] then
+				ok = false
+			end
+			if ok == true then
+				spr(Assets.sprites.ui.background.single_dark_gray, x * Grid.cell_size, y * Grid.cell_size, 0)
+			end
+			::continue::
+		end
+	end
+end
+
 function Game.get_grid_height()
 	-- when there are more than 2 players, grid is smaller and character is drawn on top
 	if Game.players <= 2 then
 		return 15
 	end
-	return 13
+	return 14
 end
 
 function Game.get_grid_y()
@@ -2669,11 +2706,13 @@ function TIC()
 	if Game.scene == SCENES.MENU then
 		Game.menu:update()
 		Game.menu:draw()
+		Game.draw_screen_border()
 		Audio.play_bgm(Assets.music.menu)
 	elseif Game.scene == SCENES.PARAMS then
 		Game.update_params()
 		Game.draw_player_menus()
 		Game.evaluate_readiness()
+		Game.draw_screen_border()
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
 			local is_won_by_clear = Game.eval_winner()
@@ -2691,9 +2730,12 @@ function TIC()
 		else
 			Game.spawn_grids()
 		end
+
+		Game.draw_screen_border()
 	elseif Game.scene == SCENES.GAME_OVER then
 		Game.draw_grids()
 		Game.animate_grids()
+		Game.draw_screen_border()
 	end
 
 	t = t + 1
