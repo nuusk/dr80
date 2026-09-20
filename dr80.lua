@@ -471,7 +471,20 @@ local SETTING_TYPES = {
 }
 
 -- Grid manager --
+---@class GridSetting
+---@field text string
+---@field type "number" | "character"
+---@field value integer
+---@field min integer
+---@field max integer
+
 ---@class Grid
+---@field player integer
+---@field h integer
+---@field w integer
+---@field py integer
+---@field spawn_animation_finished boolean
+---@field settings GridSetting[]
 local Grid = {
 	cell_size = 8,
 	intervals = {
@@ -925,21 +938,50 @@ function Grid:generate_stones()
 		end
 	end
 
+	local selected_positions = {}
+
 	for i = 1, preset.n, 1 do
 		local rand_num = math.random(#bag)
-		local rand_pos = bag[rand_num]
-		local color = "R"
-		if i % 3 == 0 then
-			color = "S"
-		elseif i % 3 == 1 then
-			color = "E"
-		end
+		table.insert(selected_positions, bag[rand_num])
 		table.remove(bag, rand_num)
-		self.board[rand_pos.y][rand_pos.x] = {
+	end
+	for _, pos in ipairs(selected_positions) do
+		self.board[pos.y][pos.x] = {
 			type = CELL_TYPES.STONE,
-			spr = Assets.sprites.pieces.viruses[color],
-			color = color,
 		}
+	end
+
+	local function color_at(x, y)
+		local row = self.board[y]
+		local cell = row and row[x]
+		return cell and cell.color
+	end
+
+	for y = h_start, self.h - 1 do
+		for x = 0, self.w - 1 do
+			local stone = self.board[y][x]
+			if stone then
+				local forbidden_left = nil
+				local left = color_at(x - 1, y)
+				if left == color_at(x - 2, y) and left == color_at(x - 3, y) then
+					forbidden_left = left
+				end
+				local forbidden_above = nil
+				local above = color_at(x, y - 1)
+				if above == color_at(x, y - 2) and above == color_at(x, y - 3) then
+					forbidden_above = above
+				end
+				local available = {}
+				for _, color in ipairs({ "R", "S", "E" }) do
+					if color ~= forbidden_left and color ~= forbidden_above then
+						table.insert(available, color)
+					end
+				end
+				local color = available[math.random(#available)]
+				stone.color = color
+				stone.spr = Assets.sprites.pieces.viruses[color]
+			end
+		end
 	end
 
 	self:count_stones()
