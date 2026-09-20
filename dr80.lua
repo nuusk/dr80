@@ -2107,6 +2107,11 @@ function Game.draw_player_menus()
 	end
 end
 
+function Game.draw_next_game_overlay()
+	rect(72, 52, 98, 38, 0) -- dark backdrop
+	rectb(72, 52, 98, 38, 12) -- thin border
+end
+
 function Game.draw_screen_border()
 	local x_max = 240 // Grid.cell_size
 	local y_max = 136 // Grid.cell_size
@@ -2592,6 +2597,23 @@ main_menu = Menu:new({
 	},
 })
 
+next_game_menu = Menu:new({
+	options = {
+		{
+			label = "REMATCH",
+			callback = function() end,
+		},
+		{
+			label = "SETTINGS",
+			callback = function() end,
+		},
+		{
+			label = "MAIN MENU",
+			callback = function() end,
+		},
+	},
+})
+
 Game.menu = main_menu
 
 function Grid:update()
@@ -2689,6 +2711,8 @@ function Grid:draw_player_menu()
 	end
 end
 
+function Grid:draw_next_game_overlay() end
+
 function Grid:draw()
 	self:draw_border()
 	self:draw_board()
@@ -2736,6 +2760,7 @@ function TIC()
 			local is_won_by_elimination = Game.eval_game_overs()
 			if is_won_by_clear or is_won_by_elimination then
 				Audio.play_bgm(Assets.music.winner)
+				Game.menu = next_game_menu
 				Game.scene = SCENES.GAME_OVER
 			else
 				Game.update_grids()
@@ -2752,6 +2777,9 @@ function TIC()
 		Game.draw_grids()
 		Game.animate_grids()
 		Game.draw_screen_border()
+		Game.draw_next_game_overlay()
+		Game.menu:update()
+		Game.menu:draw()
 	end
 
 	t = t + 1
