@@ -2065,6 +2065,35 @@ function Game.evaluate_speed_up()
 	end
 end
 
+function Game.reset_grids() -- resets the grids and returns stored settings
+	Game.grids_spawned = false
+	local saved = {}
+	for i, grid in pairs(Game.grids) do
+		saved[i] = {
+			settings = table.deep_copy(grid.settings),
+			selected_character = grid.selected_character,
+		}
+	end
+	return saved
+end
+
+function Game.redo_settings()
+	for _, grid in pairs(Game.grids) do
+		grid.selected_character = nil
+		grid.settings_confirmed = false
+	end
+end
+
+function Game.restore_settings(saved)
+	Game.setup_game(Game.players)
+	for i, grid in pairs(Game.grids) do
+		grid.settings = saved[i].settings
+		grid.selected_character = saved[i].selected_character
+		grid.settings_confirmed = true
+	end
+	Game.evaluate_readiness()
+end
+
 function Game.spawn_grids()
 	local spawn_ended = true
 	for _, grid in pairs(Game.grids) do
@@ -2109,7 +2138,7 @@ end
 
 function Game.draw_next_game_overlay()
 	rect(72, 52, 98, 38, 0) -- dark backdrop
-	rectb(72, 52, 98, 38, 12) -- thin border
+	rectb(72, 52, 96, 38, 12) -- thin border
 end
 
 function Game.draw_screen_border()
@@ -2601,15 +2630,31 @@ next_game_menu = Menu:new({
 	options = {
 		{
 			label = "REMATCH",
-			callback = function() end,
+			callback = function()
+				local saved = Game.reset_grids()
+				Game.grids = {}
+				Game.restore_settings(saved)
+			end,
 		},
 		{
 			label = "SETTINGS",
-			callback = function() end,
+			callback = function()
+				Game.reset_grids()
+				Game.grids = {}
+				Game.setup_game(Game.players)
+				Audio.play_bgm(Assets.music.menu)
+				Game.scene = SCENES.PARAMS
+			end,
 		},
 		{
 			label = "MAIN MENU",
-			callback = function() end,
+			callback = function()
+				Game.reset_grids()
+				Game.grids = {}
+				Game.menu = main_menu
+				Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
+				Game.scene = SCENES.MENU
+			end,
 		},
 	},
 })
