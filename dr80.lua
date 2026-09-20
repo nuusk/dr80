@@ -2067,6 +2067,7 @@ end
 
 function Game.reset_grids() -- resets the grids and returns stored settings
 	Game.grids_spawned = false
+	Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
 	local saved = {}
 	for i, grid in pairs(Game.grids) do
 		saved[i] = {
@@ -2074,6 +2075,7 @@ function Game.reset_grids() -- resets the grids and returns stored settings
 			selected_character = grid.selected_character,
 		}
 	end
+	Game.grids = {}
 	return saved
 end
 
@@ -2632,7 +2634,6 @@ next_game_menu = Menu:new({
 			label = "REMATCH",
 			callback = function()
 				local saved = Game.reset_grids()
-				Game.grids = {}
 				Game.restore_settings(saved)
 			end,
 		},
@@ -2640,7 +2641,6 @@ next_game_menu = Menu:new({
 			label = "SETTINGS",
 			callback = function()
 				Game.reset_grids()
-				Game.grids = {}
 				Game.setup_game(Game.players)
 				Audio.play_bgm(Assets.music.menu)
 				Game.scene = SCENES.PARAMS
@@ -2650,9 +2650,7 @@ next_game_menu = Menu:new({
 			label = "MAIN MENU",
 			callback = function()
 				Game.reset_grids()
-				Game.grids = {}
 				Game.menu = main_menu
-				Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
 				Game.scene = SCENES.MENU
 			end,
 		},
