@@ -346,6 +346,7 @@ local Game = {
 	frame = 0,
 	grids_spawned = false,
 	dont_draw_top_border_positions = {},
+	next_game_overlay_delay_frames = 120,
 }
 
 -- Audio manager --
@@ -895,7 +896,7 @@ function Grid:animate_one(index, animation)
 			end
 		end
 	elseif animation.name == ANIMATIONS.DISAPPEARING_PILL then
-		local sprite = animation.sprites[animation.cur_frame // 5]
+		local sprite = animation.sprites[animation.cur_frame // 5 + 1]
 		spr(sprite, self:cx(animation.x), self:cy(animation.y), 0, 1, 0, 0, 1, 1)
 	end
 
@@ -2796,8 +2797,6 @@ function Grid:draw_player_menu()
 	end
 end
 
-function Grid:draw_next_game_overlay() end
-
 function Grid:draw()
 	self:draw_border()
 	self:draw_board()
@@ -2862,9 +2861,13 @@ function TIC()
 		Game.draw_grids()
 		Game.animate_grids()
 		Game.draw_screen_border()
-		Game.draw_next_game_overlay()
-		Game.menu:update()
-		Game.menu:draw()
+		if Game.next_game_overlay_delay_frames > 0 then
+			Game.next_game_overlay_delay_frames = Game.next_game_overlay_delay_frames - 1
+		else
+			Game.draw_next_game_overlay()
+			Game.menu:update()
+			Game.menu:draw()
+		end
 	end
 
 	t = t + 1
