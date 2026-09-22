@@ -2187,6 +2187,11 @@ function Game.draw_next_game_overlay()
 	rectb(72, 52, 96, 38, 12) -- thin border
 end
 
+function Game.draw_score_overlay()
+	rect(72, 96, 96, 28, 0) -- dark backdrop
+	rectb(72, 96, 96, 28, 12) -- thin border
+end
+
 function Game.draw_screen_border()
 	local x_max = 240 // Grid.cell_size
 	local y_max = 136 // Grid.cell_size
@@ -2873,6 +2878,7 @@ function TIC()
 			Game.menu:draw()
 		end
 	end
+	Game.draw_score_overlay()
 
 	t = t + 1
 	Game.frame = Game.frame + 1
@@ -3235,6 +3241,7 @@ end
 -- 093:aaaaaac9bbbbbbbccccbbbbcccccbbc0333cbcc099999c00cccc00000cccc000
 -- 094:0c9acbca0c9baaab0c99bbbb00c99bbb00cc9bcc000ccb99000c0ccc000acccc
 -- 095:aaacacbcbbbbbbbcbbbbbbbcbbbbbbc0ccccbcc09999bc00cccc0c000cccca00
+-- 096:000000000cccccc00c6567c00c5667c00c6667c00c6677c00cccccc000000000
 -- 097:000000000000000c000000cd000cccdd00cecddd00ceeded000ccede00000ccc
 -- 098:cccc00008888cc0088888cc0888888c0d88888ccdd88d88cdddddcc0ccccc000
 -- 099:000000000000e000000e00000000000e00000000000000e000000e0000000000
@@ -3518,3 +3525,4 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
