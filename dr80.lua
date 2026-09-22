@@ -2183,7 +2183,7 @@ function Game.draw_player_menus()
 end
 
 function Game.draw_next_game_overlay()
-	rect(72, 52, 98, 38, 0) -- dark backdrop
+	rect(72, 52, 96, 38, 0) -- dark backdrop
 	rectb(72, 52, 96, 38, 12) -- thin border
 end
 
@@ -2245,7 +2245,7 @@ end
 
 function Game.eval_game_overs()
 	if Game.players == 1 then
-		return
+		return Game.grids[1].game_over
 	end
 	local current_winner = 1
 	local game_overs = 0
@@ -2267,7 +2267,10 @@ end
 
 function Game.eval_winner()
 	if Game.players == 1 then
-		return
+		if Game.grids[1].num_stones == 0 then
+			Game.grids[1]:mark_as_winner()
+			return true
+		end
 	end
 	local current_winner = nil
 	for i, grid in ipairs(Game.grids) do
@@ -3515,4 +3518,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
