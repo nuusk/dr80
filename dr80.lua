@@ -673,9 +673,16 @@ function Runes.get_random_color()
 	return bag[i]
 end
 
-function Grid:apply_settings()
-	self:generate_board()
-	self:generate_stones()
+function Grid:apply_settings(board_presets)
+	local difficulty = self.settings[1].value
+	if not board_presets[difficulty] then
+		self:generate_board()
+		self:generate_stones()
+		board_presets[difficulty] = table.deep_copy(self.board)
+	end
+
+	self.board = table.deep_copy(board_presets[difficulty])
+	self:count_stones()
 	self:generate_character()
 	self:apply_speed()
 end
@@ -994,7 +1001,12 @@ function Grid:generate_stones()
 						table.insert(available, color)
 					end
 				end
-				local color = available[math.random(#available)]
+				local color
+				if Game.mode == MODES.MONOCOLOR then
+					color = available_colors[1]
+				else
+					color = available[math.random(#available)]
+				end
 				stone.color = color
 				stone.spr = Assets.sprites.pieces.viruses[color]
 			end
@@ -2193,8 +2205,9 @@ function Game.evaluate_readiness()
 		all_ready = all_ready and grid.settings_confirmed
 	end
 	if all_ready == true then
-		for _, grid in pairs(Game.grids) do
-			grid:apply_settings()
+		local board_presets = {}
+		for _, grid in ipairs(Game.grids) do
+			grid:apply_settings(board_presets)
 		end
 
 		if Game.players == 1 then
@@ -2732,13 +2745,13 @@ main_menu = Menu:new({
 				Game.mode = MODES.MONOCOLOR
 			end,
 		},
-		{
-			label = "ENDLESS",
-			callback = function()
-				Game.menu = players_menu
-				Game.mode = MODES.CLASSIC
-			end,
-		},
+		-- {
+		-- 	label = "ENDLESS",
+		-- 	callback = function()
+		-- 		Game.menu = players_menu
+		-- 		Game.mode = MODES.CLASSIC
+		-- 	end,
+		-- },
 	},
 })
 
