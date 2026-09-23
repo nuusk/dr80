@@ -335,6 +335,7 @@ local MODES = {
 	CLASSIC = 0,
 	CAMPAIGN = 1,
 	ENDLESS = 2,
+	MONOCOLOR = 3,
 }
 
 local Game = {
@@ -924,6 +925,7 @@ function Grid:bump_speed()
 end
 
 function Grid:generate_stones()
+	local available_colors = { "R", "S", "E" }
 	local presets = {
 		[1] = { n = 6, safe = 0.55 },
 		[2] = { n = 12, safe = 0.40 },
@@ -931,9 +933,17 @@ function Grid:generate_stones()
 		[4] = { n = 39, safe = 0.20 },
 	}
 	local preset = presets[self.settings[1].value]
+
 	if not preset then
 		Console.log("level too high")
 		return {}
+	end
+
+	if Game.mode == MODES.MONOCOLOR then
+		available_colors = {
+			available_colors[math.random(#available_colors)],
+		}
+		preset.n = math.max(1, math.floor(preset.n / 2))
 	end
 
 	local h_start = math.floor(preset.safe * self.h)
@@ -979,7 +989,7 @@ function Grid:generate_stones()
 					forbidden_above = above
 				end
 				local available = {}
-				for _, color in ipairs({ "R", "S", "E" }) do
+				for _, color in ipairs(available_colors) do
 					if color ~= forbidden_left and color ~= forbidden_above then
 						table.insert(available, color)
 					end
@@ -2715,6 +2725,13 @@ main_menu = Menu:new({
 		-- 		Game.mode = MODES.CAMPAIGN
 		-- 	end,
 		-- },
+		{
+			label = "MONOCOLOR",
+			callback = function()
+				Game.menu = players_menu
+				Game.mode = MODES.MONOCOLOR
+			end,
+		},
 		{
 			label = "ENDLESS",
 			callback = function()
