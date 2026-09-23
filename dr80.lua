@@ -139,6 +139,7 @@ local Assets = {
 				bottom = 65,
 				bottom_right = 66,
 			},
+			score_coin = 352,
 			background = {
 				single = 503,
 				single_dark_gray = 501,
@@ -341,6 +342,8 @@ local Game = {
 	mode = MODES.CLASSIC,
 	---@type Grid[]
 	grids = {},
+	---@type integer[]
+	scores = { 0, 0, 0, 0 },
 	players = 1,
 	winner = 0,
 	frame = 0,
@@ -486,6 +489,7 @@ local SETTING_TYPES = {
 ---@field py integer
 ---@field spawn_animation_finished boolean
 ---@field settings GridSetting[]
+---@field score_tmp integer -- temporary score field just for printing
 local Grid = {
 	cell_size = 8,
 	intervals = {
@@ -534,6 +538,7 @@ function Grid:new(player)
 			max = 4,
 		},
 	}
+	g.score = 0
 	g.selected_setting = 1
 	g.selected_character = nil
 	g.settings_confirmed = false
@@ -544,8 +549,8 @@ function Grid:new(player)
 		g.next_pill_y = 0
 		g.character_x = g.w + 1
 		g.character_y = g.h - 4
-		g.score_x = g.w + 1
-		g.score_y = 4
+		g.num_stones_x = g.w + 1
+		g.num_stones_y = 4
 		g.target_x = g.w + 1
 		g.target_y = g.h - 8
 		g.target_selected_x = g.w + 1
@@ -554,7 +559,7 @@ function Grid:new(player)
 			g.px = g.px + 2
 			g.character_x = -3
 			g.next_pill_x = -3
-			g.score_x = -3
+			g.num_stones_x = -3
 			g.character_flip = 1
 		end
 	else
@@ -563,20 +568,20 @@ function Grid:new(player)
 		g.next_pill_y = -2
 		g.character_x = g.w - 3
 		g.character_y = -2
-		g.score_x = 1
+		g.num_stones_x = 1
 		if Game.players == 3 then
 			g.px = g.px + 1
 		end
 		if Game.players == 4 then
 			g.next_pill_x = g.w - 4
 			g.character_x = g.w - 2
-			g.score_x = 0
+			g.num_stones_x = 0
 			if g.player > 2 then
 				-- hack to make grids more centered
 				g.px = g.px + 1
 			end
 		end
-		g.score_y = -1
+		g.num_stones_y = -1
 		g.target_x = 0
 		g.target_y = -4
 		g.target_selected_x = 2
@@ -740,8 +745,8 @@ function Grid:draw_additionals()
 end
 
 function Grid:draw_num_stones()
-	local cx = self:cx(self.score_x)
-	local cy = self:cy(self.score_y - 1)
+	local cx = self:cx(self.num_stones_x)
+	local cy = self:cy(self.num_stones_y - 1)
 
 	-- spr(Assets.sprites.ui.background.pill_white_border, cx, cy, 0, 1, 0, 0, 2, 1)
 
@@ -749,12 +754,13 @@ function Grid:draw_num_stones()
 	if self.num_stones >= 10 then
 		offset = 2
 	end
-	print(self.num_stones, self:cx(self.score_x) + offset, self:cy(self.score_y) - self.cell_size + 1, 8, true)
-end
-
-function Grid:draw_score()
-	-- TODO: make it pretty. or should we remove it?
-	-- print(self.num_stones, self:cx(23), self:cy(self.score_y) - self.cell_size + 1, 8, true)
+	print(
+		self.num_stones,
+		self:cx(self.num_stones_x) + offset,
+		self:cy(self.num_stones_y) - self.cell_size + 1,
+		8,
+		true
+	)
 end
 
 function Grid:should_panic(t)
@@ -1857,6 +1863,7 @@ function Grid:draw_settings()
 	for i, s in ipairs(self.settings) do
 		local text_offset = self:get_setting_y_offset(i)
 		local is_focused = self.selected_setting == i
+		self:draw_score_in_settings()
 		self:print_setting_text(s.text, is_focused, text_offset)
 		local value_offset = text_offset + 6
 		if s.type == SETTING_TYPES.NUMBER then
@@ -1864,6 +1871,25 @@ function Grid:draw_settings()
 		elseif s.type == SETTING_TYPES.CHARACTER then
 			self:draw_character_setting(s.value, s.max, is_focused, value_offset)
 		end
+	end
+end
+
+function Grid:draw_score_in_settings()
+	local x = (self:cx(0)) - 2
+	local y = 10
+	local limit = 10
+	if Game.players == 3 then
+		limit = 8
+	elseif Game.players == 4 then
+		limit = 6
+	end
+	if self.score_tmp < limit then
+		for c = 1, self.score_tmp, 1 do
+			spr(Assets.sprites.ui.score_coin, x + 7 * c, y, 0)
+		end
+	else
+		spr(Assets.sprites.ui.score_coin, x + 5, y, 0)
+		print(string.format("x%d", self.score_tmp), x + 20, y, 8)
 	end
 end
 
@@ -2177,7 +2203,8 @@ function Game.update_params()
 end
 
 function Game.draw_player_menus()
-	for _, grid in pairs(Game.grids) do
+	for i, grid in pairs(Game.grids) do
+		grid.score_tmp = Game.scores[i]
 		grid:draw_player_menu()
 	end
 end
@@ -2188,8 +2215,21 @@ function Game.draw_next_game_overlay()
 end
 
 function Game.draw_score_overlay()
-	rect(72, 96, 96, 28, 0) -- dark backdrop
-	rectb(72, 96, 96, 28, 12) -- thin border
+	local y_anchor = 45 - 6 * Game.players
+	local x_anchor = 72
+	rect(x_anchor, y_anchor, 96, 8 + 6 * Game.players, 0)
+	rectb(x_anchor, y_anchor, 96, 8 + 6 * Game.players, 12)
+	for i in ipairs(Game.grids) do
+		print(string.format("P%d", i), x_anchor + 6, y_anchor - 2 + i * 6, 8)
+		if Game.scores[i] < 10 then
+			for c = 1, Game.scores[i], 1 do
+				spr(Assets.sprites.ui.score_coin, x_anchor + 14 + 7 * c, y_anchor - 3 + i * 6, 0)
+			end
+		else
+			spr(Assets.sprites.ui.score_coin, x_anchor + 21, y_anchor - 3 + i * 6, 0)
+			print(string.format("x%d", Game.scores[i]), x_anchor + 32, y_anchor - 2 + i * 6, 8)
+		end
+	end
 end
 
 function Game.draw_screen_border()
@@ -2264,16 +2304,22 @@ function Game.eval_game_overs()
 
 	if game_overs >= Game.players - 1 then
 		Game.winner = current_winner
-		Game.grids[current_winner]:mark_as_winner()
+		Game.mark_winner(current_winner)
 		return true
 	end
 	return false
 end
 
+function Game.mark_winner(winner)
+	Game.winner = winner
+	Game.grids[winner]:mark_as_winner()
+	Game.scores[winner] = Game.scores[winner] + 1
+end
+
 function Game.eval_winner()
 	if Game.players == 1 then
 		if Game.grids[1].num_stones == 0 then
-			Game.grids[1]:mark_as_winner()
+			Game.mark_winner(1)
 			return true
 		end
 	end
@@ -2281,8 +2327,7 @@ function Game.eval_winner()
 	for i, grid in ipairs(Game.grids) do
 		if grid.num_stones == 0 then
 			current_winner = i
-			Game.winner = i
-			Game.grids[i]:mark_as_winner()
+			Game.mark_winner(i)
 			break
 		end
 	end
@@ -2827,7 +2872,7 @@ function Grid:draw()
 	if self.stage_visible then
 		self:draw_stage_border()
 		self:draw_stage()
-		self:draw_score()
+		self:draw_num_stones()
 	end
 end
 
@@ -2874,11 +2919,11 @@ function TIC()
 			Game.next_game_overlay_delay_frames = Game.next_game_overlay_delay_frames - 1
 		else
 			Game.draw_next_game_overlay()
+			Game.draw_score_overlay()
 			Game.menu:update()
 			Game.menu:draw()
 		end
 	end
-	Game.draw_score_overlay()
 
 	t = t + 1
 	Game.frame = Game.frame + 1
@@ -3241,7 +3286,7 @@ end
 -- 093:aaaaaac9bbbbbbbccccbbbbcccccbbc0333cbcc099999c00cccc00000cccc000
 -- 094:0c9acbca0c9baaab0c99bbbb00c99bbb00cc9bcc000ccb99000c0ccc000acccc
 -- 095:aaacacbcbbbbbbbcbbbbbbbcbbbbbbc0ccccbcc09999bc00cccc0c000cccca00
--- 096:000000000cccccc00c6567c00c5667c00c6667c00c6677c00cccccc000000000
+-- 096:000000000cccccc00c6567c00c5667c00c6667c00cccccc00000000000000000
 -- 097:000000000000000c000000cd000cccdd00cecddd00ceeded000ccede00000ccc
 -- 098:cccc00008888cc0088888cc0888888c0d88888ccdd88d88cdddddcc0ccccc000
 -- 099:000000000000e000000e00000000000e00000000000000e000000e0000000000
@@ -3525,4 +3570,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
