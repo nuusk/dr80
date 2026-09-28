@@ -336,6 +336,7 @@ local MODES = {
 	CAMPAIGN = 1,
 	ENDLESS = 2,
 	MONOCOLOR = 3,
+	PILL_REMOVE = 4,
 }
 
 local Game = {
@@ -1371,6 +1372,11 @@ end
 
 function Grid:drop_pill()
 	if self.active_pill == nil then
+		return
+	end
+
+	if Game.mode == MODES.PILL_REMOVE then
+		self.active_pill = nil
 		return
 	end
 
@@ -2745,6 +2751,13 @@ main_menu = Menu:new({
 				Game.mode = MODES.MONOCOLOR
 			end,
 		},
+		{
+			label = "VANISH",
+			callback = function()
+				Game.menu = players_menu
+				Game.mode = MODES.PILL_REMOVE
+			end,
+		},
 		-- {
 		-- 	label = "ENDLESS",
 		-- 	callback = function()
@@ -2794,10 +2807,10 @@ function Grid:update()
 	if btnp(keys.B) then
 		self:rotate_counterclockwise()
 	end
-	if btnp(keys.LEFT) then
+	if btnp_repeat(keys.LEFT) then
 		self:move_left()
 	end
-	if btnp(keys.RIGHT) then
+	if btnp_repeat(keys.RIGHT) then
 		self:move_right()
 	end
 	if btnp(keys.PAUSE) then
