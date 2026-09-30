@@ -1977,7 +1977,7 @@ function Grid:draw_number_setting(value, max, is_focused, y_offset)
 			sprt = Assets.sprites.ui.settings.empty_focus
 		end
 		if value > i then
-			sprt = setting_levels_sprites[i + 1]
+			sprt = setting_levels_sprites[3]
 		end
 		spr(sprt, self:cx(x + i), y, 0)
 		i = i + 1
@@ -2003,9 +2003,7 @@ function Grid:draw_character_setting(value, max, is_focused, y_offset)
 		rectb(lx - 1, y - 1, (Grid.cell_size * 2) + 2, Grid.cell_size + 2, border_color)
 
 		if Game.character_already_taken(i) then
-			for q = 1, 9, 2 do
-				line(lx, y + q, lx + Grid.cell_size * 2 - 1, y + q, 15)
-			end
+			rect(lx, y, (Grid.cell_size * 2), Grid.cell_size, 15)
 		end
 		i = i + 1
 		k = k + 1
