@@ -353,6 +353,8 @@ local Game = {
 	grids_spawned = false,
 	dont_draw_top_border_positions = {},
 	next_game_overlay_delay_frames = 120,
+	is_paused = false,
+	paused_by_player = 0,
 }
 
 -- Audio manager --
@@ -508,6 +510,9 @@ local SETTING_TYPES = {
 ---@field spawn_animation_finished boolean
 ---@field settings GridSetting[]
 ---@field score_tmp integer -- temporary score field just for printing
+---@field update_timer integer -- each player has their own timer. every "interval", update_timer resets and grid progresses
+---@field score integer
+---@field character_flip integer
 local Grid = {
 	cell_size = 8,
 	intervals = {
@@ -533,6 +538,7 @@ function Grid:new(player)
 	g.py = Game.get_grid_y()
 	g.spawn_animation_finished = true
 	g.target = TARGETS.LEADER
+	g.update_timer = 0
 	g.settings = {
 		{
 			text = "difficulty",
@@ -619,7 +625,6 @@ function Grid:new(player)
 	g.drop_phase = false
 	g.board = {}
 	g.phantom_half = {} -- pill that got cut cause it didnt fit on the board. will be used for counting rle
-	g.is_paused = false
 	g.character = nil
 	g.combo = 0
 	g.pending_surprises = 0
@@ -1396,6 +1401,7 @@ end
 
 function Grid:vanish_pill()
 	self.active_pill = nil
+	self.update_timer = 0
 end
 
 function Grid:drop_pill()
@@ -1414,6 +1420,8 @@ function Grid:drop_pill()
 	while grav_possible do
 		grav_possible, end_x1, end_y1, end_x2, end_y2 = self:grav()
 	end
+
+	self.update_timer = 0
 
 	self:add_animation_to_queue(ANIMATIONS.DROP_TRAIL, {
 		start_x1 = start_x1,
@@ -2098,6 +2106,14 @@ function Game.setup_game(players)
 	Game.scene = SCENES.PARAMS
 end
 
+function Game.pause_by_player(player)
+	Game.is_paused = not Game.is_paused
+	Game.paused_by_player = player
+	if not Game.is_paused then
+		Game.paused_by_player = 0
+	end
+end
+
 function Game.character_already_taken(i)
 	for _, b in ipairs(Game.grids) do
 		if b.selected_character == i then
@@ -2264,6 +2280,14 @@ function Game.draw_next_game_overlay()
 	rectb(72, 52, 96, 38, 12) -- thin border
 end
 
+function Game.draw_pause_overlay()
+	rect(72, 55, 96, 21, 0) -- dark backdrop
+	rectb(72, 55, 96, 21, 12) -- thin border
+
+	print("PAUSED", 102, 60, 8)
+	print(string.format("(by player %d)", Game.paused_by_player), 86, 66, 8)
+end
+
 function Game.draw_score_overlay()
 	local y_anchor = 45 - 6 * Game.players
 	local x_anchor = 72
@@ -2409,6 +2433,7 @@ end
 -- like the stage with viruses, bosses etc
 
 function Grid:eval()
+	self.update_timer = 0
 	if self.active_pill == nil then
 		if #self.queued_surprises > 0 then
 			self:drop_queued_surprises()
@@ -2783,6 +2808,13 @@ main_menu = Menu:new({
 				Game.mode = MODES.VANISH
 			end,
 		},
+		{
+			label = "POWER DROP",
+			callback = function()
+				Game.menu = players_menu
+				Game.mode = MODES.POWER_DROP
+			end,
+		},
 		-- {
 		-- 	label = "ENDLESS",
 		-- 	callback = function()
@@ -2826,6 +2858,12 @@ Game.menu = main_menu
 
 function Grid:update()
 	local keys = KEYMAPS[self.player]
+	if btnp(keys.PAUSE) then
+		Game.pause_by_player(self.player)
+	end
+	if Game.is_paused then
+		return
+	end
 	if btnp(keys.A) then
 		self:rotate_clockwise()
 	end
@@ -2837,9 +2875,6 @@ function Grid:update()
 	end
 	if btnp_repeat(keys.RIGHT) then
 		self:move_right()
-	end
-	if btnp(keys.PAUSE) then
-		Game.pause_by_player(self.player)
 	end
 	if btnp(keys.SUPER) then
 		-- self:bump_speed()
@@ -2857,11 +2892,13 @@ function Grid:update()
 		self:special_ability()
 	end
 
-	if t % effective_interval == 0 then
-		if self.is_paused ~= true and self.game_over ~= true and self.winner ~= true then
+	if self.update_timer >= effective_interval then
+		if self.game_over ~= true and self.winner ~= true then
 			self:eval()
 		end
 	end
+
+	self.update_timer = self.update_timer + 1
 end
 
 -- btnp repeat helper
@@ -2968,8 +3005,12 @@ function TIC()
 			end
 
 			Game.draw_grids()
-			Game.animate_grids()
-			Game.evaluate_speed_up()
+			if Game.is_paused then
+				Game.draw_pause_overlay()
+			else
+				Game.animate_grids()
+				Game.evaluate_speed_up()
+			end
 		else
 			Game.spawn_grids()
 		end
