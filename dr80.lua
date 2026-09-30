@@ -336,7 +336,8 @@ local MODES = {
 	CAMPAIGN = 1,
 	ENDLESS = 2,
 	MONOCOLOR = 3,
-	PILL_REMOVE = 4,
+	VANISH = 4,
+	POWER_DROP = 5,
 }
 
 local Game = {
@@ -366,10 +367,16 @@ local Audio = {
 		happy = { "C-4", "D-4", "E-4", "G-4" },
 		arcade = { "E-3", "G-3", "A-3", "C-4" },
 	},
+	music_muted = false,
 }
 
 function Audio.play_bgm(track, tempo)
-	if Audio.bgm == track and tempo == Audio.tempo then
+	if Audio.music_muted then
+		Audio.bgm = track
+		Audio.tempo = tempo
+		return
+	end
+	if Audio.bgm == track and tempo == Audio.tempo and Audio.music_muted == false then
 		return
 	elseif Audio.bgm == track and tempo ~= Audio.tempo then
 		music(track, -1, -1, true, false, tempo or -1)
@@ -378,6 +385,15 @@ function Audio.play_bgm(track, tempo)
 	end
 	Audio.bgm = track
 	Audio.tempo = tempo
+end
+
+function Audio.toggle_music_mute()
+	Audio.music_muted = not Audio.music_muted
+	if Audio.music_muted then
+		music(-1)
+	elseif Audio.bgm ~= nil then
+		music(Audio.bgm, 0, 0, true, false, Audio.tempo or -1)
+	end
 end
 
 function Audio.stop_bgm()
@@ -1370,13 +1386,20 @@ function Grid:cycle_target()
 	end
 end
 
+function Grid:special_ability()
+	if Game.mode == MODES.VANISH then
+		self:vanish_pill()
+	elseif Game.mode == MODES.POWER_DROP then
+		self:drop_pill()
+	end
+end
+
+function Grid:vanish_pill()
+	self.active_pill = nil
+end
+
 function Grid:drop_pill()
 	if self.active_pill == nil then
-		return
-	end
-
-	if Game.mode == MODES.PILL_REMOVE then
-		self.active_pill = nil
 		return
 	end
 
@@ -2331,8 +2354,10 @@ function Game.eval_game_overs()
 		end
 	end
 
-	if game_overs >= Game.players - 1 then
-		Game.winner = current_winner
+	if game_overs == Game.players then
+		Game.winner = 0
+		return true
+	elseif game_overs == Game.players - 1 then
 		Game.mark_winner(current_winner)
 		return true
 	end
@@ -2676,6 +2701,8 @@ function Menu:update()
 		self:up()
 	elseif btnp(KEYMAP_P1.DOWN) then
 		self:down()
+	elseif btnp(KEYMAP_P1.PAUSE) then
+		Audio.toggle_music_mute()
 	end
 
 	if btnp(KEYMAP_P1.A) then
@@ -2755,7 +2782,7 @@ main_menu = Menu:new({
 			label = "VANISH",
 			callback = function()
 				Game.menu = players_menu
-				Game.mode = MODES.PILL_REMOVE
+				Game.mode = MODES.VANISH
 			end,
 		},
 		-- {
@@ -2814,7 +2841,7 @@ function Grid:update()
 		self:move_right()
 	end
 	if btnp(keys.PAUSE) then
-		self:log_state()
+		Game.pause_by_player(self.player)
 	end
 	if btnp(keys.SUPER) then
 		-- self:bump_speed()
@@ -2829,7 +2856,7 @@ function Grid:update()
 	end
 
 	if btnp(keys.UP) then
-		self:drop_pill()
+		self:special_ability()
 	end
 
 	if t % effective_interval == 0 then
@@ -2867,21 +2894,18 @@ function Grid:update_params()
 	local keys = KEYMAPS[self.player]
 	if btnp_repeat(keys.UP) then
 		self:setting_prev()
-	end
-	if btnp_repeat(keys.DOWN) then
+	elseif btnp_repeat(keys.DOWN) then
 		self:setting_next()
-	end
-	if btnp_repeat(keys.LEFT) then
+	elseif btnp_repeat(keys.LEFT) then
 		self:selected_setting_minus()
-	end
-	if btnp_repeat(keys.RIGHT) then
+	elseif btnp_repeat(keys.RIGHT) then
 		self:selected_setting_plus()
-	end
-	if btnp(keys.A) then
+	elseif btnp(keys.A) then
 		self:confirm_settings()
-	end
-	if btnp(keys.B) then
+	elseif btnp(keys.B) then
 		self:go_back_settings()
+	elseif btnp(keys.PAUSE) then
+		Audio.toggle_music_mute()
 	end
 end
 
@@ -2937,9 +2961,7 @@ function TIC()
 		Game.draw_screen_border()
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
-			local is_won_by_clear = Game.eval_winner()
-			local is_won_by_elimination = Game.eval_game_overs()
-			if is_won_by_clear or is_won_by_elimination then
+			if Game.eval_winner() or Game.eval_game_overs() then
 				Audio.play_bgm(Assets.music.winner)
 				Game.menu = next_game_menu
 				Game.scene = SCENES.GAME_OVER
