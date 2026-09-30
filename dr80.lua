@@ -117,6 +117,8 @@ local Assets = {
 			drop = 6,
 		},
 		character = {
+			move_deprecated = { 8, 9, 10, 11 },
+			land = { 12, 13, 14, 15 },
 			overflow = { 16, 17, 18, 19 },
 			drop = { 20, 21, 22, 23 },
 			clear = { 24, 25, 26, 27 },
@@ -1409,8 +1411,6 @@ function Grid:drop_pill()
 		return
 	end
 
-	Audio.play(Assets.sfx.character.drop[self.character.id])
-
 	-- mark tiles that need to be animated (drop trail)
 	-- current position
 	local start_x1, start_y1, start_x2, start_y2 = self:get_pill_xy()
@@ -1421,6 +1421,7 @@ function Grid:drop_pill()
 		grav_possible, end_x1, end_y1, end_x2, end_y2 = self:grav()
 	end
 
+	Audio.play(Assets.sfx.character.drop[self.character.id])
 	self.update_timer = 0
 
 	self:add_animation_to_queue(ANIMATIONS.DROP_TRAIL, {
@@ -1628,6 +1629,8 @@ function Grid:grav()
 		return true
 	else
 		self:mark_active_pill_as_static()
+		Audio.play(Assets.sfx.character.land[self.character.id])
+
 		return false, x1, y1, x2, y2
 	end
 end
@@ -2662,6 +2665,14 @@ end
 
 t = 0
 
+---@class MenuOption
+---@field label string
+---@field info string
+
+---@class Menu
+---@field options MenuOption[]
+---@field options_padding integer
+---@field on_back function
 local Menu = {}
 Menu.__index = Menu
 
@@ -2694,9 +2705,20 @@ function Menu:get_offset(i)
 	return (i - center_index) * self.options_padding
 end
 
+function Menu:print_info_dialog(info)
+	local width = print(info, 0, -100, 8, false)
+	local x = Screen.width // 2 - width // 2
+	local y = Screen.height // 2 + 30
+	local color = 8
+	print(info, x, y, color, false)
+end
+
 function Menu:draw()
 	for i, option in ipairs(self.options) do
 		self:print_item(option.label, i == self.selected_option, self:get_offset(i))
+		if i == self.selected_option and option.info ~= nil then
+			self:print_info_dialog(option.info)
+		end
 	end
 end
 
@@ -2786,6 +2808,7 @@ main_menu = Menu:new({
 				Game.menu = players_menu
 				Game.mode = MODES.CLASSIC
 			end,
+			info = "just like dr mario",
 		},
 		-- {
 		-- 	label = "CAMPAIGN",
@@ -2794,19 +2817,20 @@ main_menu = Menu:new({
 		-- 		Game.mode = MODES.CAMPAIGN
 		-- 	end,
 		-- },
-		{
-			label = "MONOCOLOR",
-			callback = function()
-				Game.menu = players_menu
-				Game.mode = MODES.MONOCOLOR
-			end,
-		},
+		-- {
+		-- 	label = "MONOCOLOR",
+		-- 	callback = function()
+		-- 		Game.menu = players_menu
+		-- 		Game.mode = MODES.MONOCOLOR
+		-- 	end,
+		-- },
 		{
 			label = "VANISH",
 			callback = function()
 				Game.menu = players_menu
 				Game.mode = MODES.VANISH
 			end,
+			info = "up arrow discards pill",
 		},
 		{
 			label = "POWER DROP",
@@ -2814,6 +2838,7 @@ main_menu = Menu:new({
 				Game.menu = players_menu
 				Game.mode = MODES.POWER_DROP
 			end,
+			info = "up arrow instantly drops pill",
 		},
 		-- {
 		-- 	label = "ENDLESS",
@@ -2858,6 +2883,7 @@ Game.menu = main_menu
 
 function Grid:update()
 	local keys = KEYMAPS[self.player]
+
 	if btnp(keys.PAUSE) then
 		Game.pause_by_player(self.player)
 	end
@@ -3578,35 +3604,43 @@ end
 -- 005:ffff00000000000000000fffffffffff
 -- 009:00000000000000000000006600000000
 -- 012:12345678889bcdeffedcb98887654321
--- 013:34556677888899999999988887665543
--- 014:aaaaaa55559fffffaaaaaaaa99999999
+-- 013:2467899abbcccccccccccbbbaa987642
+-- 014:ca987654432211a99877665544332211
 -- 015:12345666666666666789abcdedcba987
 -- </WAVES>
 
 -- <SFX>
 -- 000:14c0249e346e442f641074639495b445c400d400e400e400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400301000000000
 -- 001:2100310e311a4128514a616f818791c7a1f7b1f0c1f0e100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100316000000000
--- 002:010d010e013f11301161118221a321c531d741d061008100a100c100d100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100c12000000000
--- 003:0100117021003190410051b0710091d0a100c1f0d100e100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100470000000000
+-- 002:010d010e013f11301161118221a321c531d741d061008100a100c100d100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100c11000000000
+-- 003:0100117021003190410051b0710091d0a100c1f0d100e100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100377000000000
 -- 004:01f011c0112011a02130319031404170515051a061607170814091309110a120b100b150b100c100c180c130c120d130d120d110e110f100f100f100240000000000
 -- 005:14e01430343064307440848094e0b450c4d0d430e440e400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400f400300000000000
 -- 006:0cb01cb42cb32ca42c62fc010c001c0f2c0d4c0b5c0a8c0a8c0afc0afc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00300000000000
+-- 008:2c003c0e3c1a4c285c4a6c6f8c879cc7acf7bcf0ccf0ec00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00310000000000
+-- 009:2d003d0e3d1a4d285d4a6d6f8d879dc7adf7bdf0cdf0ed00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00316000000000
+-- 010:2e003e0e3e1a4e285e4a6e6f8e879ec7aef7bef0cef0ee00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00215000000000
+-- 011:2f003f0e3f1a4f285f4a6f6f8f879fc7aff7bff0cff0ef00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00410000000000
+-- 012:1c0d2c1e3c4f5c607c81acb2ccd3dc05dc07fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00b10000000000
+-- 013:2d0d2d0e3d3f4d305d616d828da3adc5cdd7edd0ed00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00b16000000000
+-- 014:1e0b2e1d3e3e5e617e95be80ee00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00a15000000000
+-- 015:1f0d1f0e1f3f1f302f614f826fa39fc5bfd7dfd0ef00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00c10000000000
 -- 016:5cf05cc05c005c005c905c705c006c506c606c006c006c906c007c007c208c108c009c009c00ac00bc00bc00dc00ec00fc00fc00fc00fc00fc00fc00340000000000
--- 017:5df05dc05d005d005d905d705d006d506d606d006d006d906d007d007d208d108d009d009d00ad00bd00bd00dd00ed00fd00fd00fd00fd00fd00fd00540000000000
--- 018:fe0a2e8ebe012e948e052ec7fe07fe07fe071ef72ed63e95fe648ec29e70fe3dae9cbe5afe29de18ee00ee00fe00fe00fe00fe00fe00fe00fe00fe00252000000000
--- 019:ff0b2f8fbf022f948f062fc6ff06ff05ff051ff42fd33f92ff618fc09f7eff3caf9abf58ff28df18ef00ef00ff00ff00ff00ff00ff00ff00ff00ff00550000000000
--- 020:0cb00cb40cb31ca42c62fc010c001c0f2c0d3c0b5c0a6c0a7c0afc0afc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00200000000000
--- 021:0db01db41db32da43d62fd010d001d0f2d0d3d0b5d0a7d0a7d0afd0afd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00209000000000
--- 022:0e701e742e632e643e52fe013e003e0f4e0e4e0e5e0dfe0dfe0dfe0dfe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00200000000000
--- 023:0f701f742f633f643f52ff014f005f0f6f0e7f0e7f0dff0dff0dff0dff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff0040b000000000
--- 024:0c001c702c003c904c005cb07c009cd0ac00ccf0dc00ec00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00470000000000
--- 025:0d001d702d003d904d005db07d009dd0ad00cdf0dd00ed00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00470000000000
--- 026:0e001e702e003e904e005eb07e009ed0ae00cef0de00ee00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00470000000000
--- 027:0f001f702f003f904f005fb07f009fd0af00cff0df00ef00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00470000000000
--- 028:1ce01c303c306c307c408c809ce0bc50ccd0dc30ec40ec00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00300000000000
--- 029:1de01d303d306d307d408d809de0bd50cdd0dd30ed40ed00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00300000000000
--- 030:1ee01e303e306e307e408e809ee0be50ced0de30ee40ee00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00300000000000
--- 031:1fe01f303f306f307f408f809fe0bf50cfd0df30ef40ef00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00300000000000
+-- 017:5df05dc05d005d005d905d705d006d506d606d006d006d906d007d007d208d108d009d009d00ad00bd00bd00dd00ed00fd00fd00fd00fd00fd00fd00346000000000
+-- 018:fe0a2e8ebe012e948e052ec7fe07fe07fe071ef72ed63e95fe648ec29e70fe3dae9cbe5afe29de18ee00ee00fe00fe00fe00fe00fe00fe00fe00fe00255000000000
+-- 019:ff0b2f8fbf022f948f062fc6ff06ff05ff051ff42fd33f92ff618fc09f7eff3caf9abf58ff28df18ef00ef00ff00ff00ff00ff00ff00ff00ff00ff00450000000000
+-- 020:0cc60cc51cc1fcb02c8f4c5a9c10fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00300000000000
+-- 021:0db61db6fdb51da02d6b4d09fd09fd0ffd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00306000000000
+-- 022:0e750e754e63fe6f1e5b3e0abe0afe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00205000000000
+-- 023:0f761f75ff63ff6f3f5d3f0cff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00400000000000
+-- 024:0c001c702c003c904c005cb07c009cd0ac00ccf0dc00ec00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00370000000000
+-- 025:0d001d702d003d904d005db07d009dd0ad00cdf0dd00ed00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00376000000000
+-- 026:0e001e703e003e904e004eb07e005ed06e007ef08e009e00ae00ce00de00ee00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00275000000000
+-- 027:0f001f703f003f904f005fb07f008fd0af00bff0cf00df00df00ef00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00470000000000
+-- 028:1ce04c307c30acd0ccc0ec80fc20fc20fc10fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00300000000000
+-- 029:2de05d309dd0bd30ddd0dd80ed40ed10fd00fd10fd10fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00306000000000
+-- 030:2ee04e307ee0beb0de40ee60fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00205000000000
+-- 031:2fe04f307f309f30af40cf80dfe0ef50efd0ff30ff40ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00400000000000
 -- 032:100010001000200030003000500070008000a000c000e000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000f000300000000000
 -- 033:b200b200b200b200b200b200b200b200b200b200b200b200d200a200d200d200b200b200b200d200b200b200b200b200b200b200b200b200b200b200670000000000
 -- 034:e100810061005100410041005100610081009100b100c100e100e100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100f100300000000000
@@ -3674,3 +3708,4 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
