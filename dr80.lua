@@ -1402,6 +1402,17 @@ function Grid:special_ability()
 end
 
 function Grid:vanish_pill()
+	local x1, y1, x2, y2 = self:get_pill_xy(self.active_pill)
+	self:add_animation_to_queue(ANIMATIONS.DISAPPEARING_PILL, {
+		x = x1,
+		y = y1,
+		color = self.active_pill.rune1.name,
+	})
+	self:add_animation_to_queue(ANIMATIONS.DISAPPEARING_PILL, {
+		x = x2,
+		y = y2,
+		color = self.active_pill.rune2.name,
+	})
 	self.active_pill = nil
 	self.update_timer = 0
 end
@@ -3708,4 +3719,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
