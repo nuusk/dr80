@@ -1,9 +1,8 @@
--- title:   game title
--- author:  game developer, email, etc.
--- desc:    short description
--- site:    website link
--- license: MIT License (change this to your license of choice)
--- version: 0.1
+-- title:   dr80
+-- author:  nuus
+-- desc:    remake of dr mario (nes). clear viruses using falling pills.
+-- license: MIT License
+-- version: 1.0
 -- script:  lua
 math.randomseed(tstamp())
 
@@ -2845,20 +2844,20 @@ main_menu = Menu:new({
 		-- 	end,
 		-- },
 		{
-			label = "VANISH",
-			callback = function()
-				Game.menu = players_menu
-				Game.mode = MODES.VANISH
-			end,
-			info = "up arrow discards pill",
-		},
-		{
 			label = "POWER DROP",
 			callback = function()
 				Game.menu = players_menu
 				Game.mode = MODES.POWER_DROP
 			end,
 			info = "up arrow instantly drops pill",
+		},
+		{
+			label = "VANISH",
+			callback = function()
+				Game.menu = players_menu
+				Game.mode = MODES.VANISH
+			end,
+			info = "up arrow discards pill (prototype)",
 		},
 		-- {
 		-- 	label = "ENDLESS",
