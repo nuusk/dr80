@@ -327,6 +327,7 @@ local Assets = {
 }
 
 local SCENES = {
+	TITLE = -1,
 	MENU = 0,
 	PARAMS = 1,
 	GAME = 2,
@@ -343,7 +344,7 @@ local MODES = {
 }
 
 local Game = {
-	scene = SCENES.MENU,
+	scene = SCENES.TITLE,
 	mode = MODES.CLASSIC,
 	---@type Grid[]
 	grids = {},
@@ -2320,6 +2321,14 @@ function Game.draw_score_overlay()
 	end
 end
 
+function Game.draw_title_screen()
+	local previous = peek4(0x3FFc * 2)
+	poke4(0x3FFC * 2, 3)
+	map(0, 0, 30, 17, 0, 0)
+
+	poke4(0x3FFC * 2, previous)
+end
+
 function Game.draw_screen_border()
 	local x_max = 240 // Grid.cell_size
 	local y_max = 136 // Grid.cell_size
@@ -3021,7 +3030,10 @@ function TIC()
 
 	rectb(0, 0, 240, 136, 12)
 
-	if Game.scene == SCENES.MENU then
+	if Game.scene == SCENES.TITLE then
+		Game.draw_title_screen()
+		Game.draw_screen_border()
+	elseif Game.scene == SCENES.MENU then
 		Game.menu:update()
 		Game.menu:draw()
 		Game.draw_screen_border()
@@ -3813,4 +3825,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
