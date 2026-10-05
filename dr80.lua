@@ -2448,20 +2448,15 @@ end
 
 function Grid:eval()
 	self.update_timer = 0
-	if self.active_pill == nil then
-		if #self.queued_surprises > 0 then
-			self:drop_queued_surprises()
-			return
-		end
-
-		if self.pending_speed_up > 0 then
-			self:bump_speed()
-		end
-	end
 
 	if self.pending_surprises > 0 then
 		self:spawn_queued_surprises()
-		return
+	end
+
+	if self.active_pill == nil then
+		if self.pending_speed_up > 0 then
+			self:bump_speed()
+		end
 	end
 
 	if self.cascade_trigger == true then
@@ -2482,6 +2477,11 @@ function Grid:eval()
 	end
 
 	if self.active_pill == nil then
+		if #self.queued_surprises > 0 then
+			self:drop_queued_surprises()
+			return
+		end
+
 		if self.combo > 1 then
 			self:send_surprises(self.combo, self.target)
 		elseif self.next_pill ~= nil then
