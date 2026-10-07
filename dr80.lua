@@ -1511,6 +1511,23 @@ function Grid:get_pill_xy(pill, rotation)
 	return nil, nil, nil, nil
 end
 
+function Grid:get_shadow_xy()
+	if self.active_pill == nil then
+		return
+	end
+
+	local x1, y1, x2, y2 = self:get_pill_xy()
+	local i = 1
+	while self:available(x1, y1 + i) and self:available(x2, y2 + i) do
+		i = i + 1
+	end
+	i = i - 1
+	if i < 1 then
+		return
+	end
+	return x1, y1 + i, x2, y2 + i
+end
+
 function Grid:get_pill_sprites(pill)
 	pill = pill or self.active_pill
 	if not pill then
@@ -1555,11 +1572,13 @@ function Grid:draw_power_drop_shadow()
 		return
 	end
 
-	local x1, y1, x2, y2 = self:get_pill_xy()
-	local spr1, spr2 = self:get_pill_sprites()
+	local spr1, spr2 = self:map_pill_sprites_to_power_drop_shadow_sprites(self:get_pill_sprites())
+	local x1, y1, x2, y2 = self:get_shadow_xy()
 
-	spr(spr1, self:cx(x1), self:cy(y1), 0)
-	spr(spr2, self:cx(x2), self:cy(y2), 0)
+	if x1 ~= nil and x2 ~= nil and y1 ~= nil and y2 ~= nil then
+		spr(spr1, self:cx(x1), self:cy(y1), 0)
+		spr(spr2, self:cx(x2), self:cy(y2), 0)
+	end
 end
 
 function Grid:draw_active_pill()
@@ -3176,6 +3195,9 @@ function Grid:draw()
 	self:draw_board()
 	self:draw_static_pills()
 	self:draw_active_pill()
+	if Game.mode == MODES.POWER_DROP then
+		self:draw_power_drop_shadow()
+	end
 	self:draw_halves()
 	self:draw_queued_surprises()
 	self:draw_character(t)
