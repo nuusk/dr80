@@ -426,8 +426,8 @@ local KEYMAP_P1 = {
 	DOWN = 1,
 	LEFT = 2,
 	RIGHT = 3,
-	B = 4,
-	A = 5,
+	A = 4,
+	B = 5,
 	PAUSE = 6,
 	SUPER = 7,
 }
@@ -437,8 +437,8 @@ local KEYMAP_P2 = {
 	DOWN = 9,
 	LEFT = 10,
 	RIGHT = 11,
-	B = 12,
-	A = 13,
+	A = 12,
+	B = 13,
 	PAUSE = 14,
 	SUPER = 15,
 }
@@ -448,8 +448,8 @@ local KEYMAP_P3 = {
 	DOWN = 17,
 	LEFT = 18,
 	RIGHT = 19,
-	B = 20,
-	A = 21,
+	A = 20,
+	B = 21,
 	PAUSE = 22,
 	SUPER = 23,
 }
@@ -459,8 +459,8 @@ local KEYMAP_P4 = {
 	DOWN = 25,
 	LEFT = 26,
 	RIGHT = 27,
-	B = 28,
-	A = 29,
+	A = 28,
+	B = 29,
 	PAUSE = 30,
 	SUPER = 31,
 }
@@ -2320,12 +2320,146 @@ function Game.draw_score_overlay()
 	end
 end
 
+local keycodes = {
+	[01] = "A",
+	[02] = "B",
+	[03] = "C",
+	[04] = "D",
+	[05] = "E",
+	[06] = "F",
+	[07] = "G",
+	[08] = "H",
+	[09] = "I",
+	[10] = "J",
+	[11] = "K",
+	[12] = "L",
+	[13] = "M",
+	[14] = "N",
+	[15] = "O",
+	[16] = "P",
+	[17] = "Q",
+	[18] = "R",
+	[19] = "S",
+	[20] = "T",
+	[21] = "U",
+	[22] = "V",
+	[23] = "W",
+	[24] = "X",
+	[25] = "Y",
+	[26] = "Z",
+	[27] = "0",
+	[28] = "1",
+	[29] = "2",
+	[30] = "3",
+	[31] = "4",
+	[32] = "5",
+	[33] = "6",
+	[34] = "7",
+	[35] = "8",
+	[36] = "9",
+	[37] = "MINUS",
+	[38] = "EQUALS",
+	[39] = "LEFTBRACKET",
+	[40] = "RIGHTBRACKET",
+	[41] = "BACKSLASH",
+	[42] = "SEMICOLON",
+	[43] = "APOSTROPHE",
+	[44] = "GRAVE",
+	[45] = "COMMA",
+	[46] = "PERIOD",
+	[47] = "SLASH",
+	[48] = "SPACE",
+	[49] = "TAB",
+	[50] = "RETURN",
+	[51] = "BACKSPACE",
+	[52] = "DELETE",
+	[53] = "INSERT",
+	[54] = "PAGEUP",
+	[55] = "PAGEDOWN",
+	[56] = "HOME",
+	[57] = "END",
+	[58] = "UP",
+	[59] = "DOWN",
+	[60] = "LEFT",
+	[61] = "RIGHT",
+	[62] = "CAPSLOCK",
+	[63] = "CTRL",
+	[64] = "SHIFT",
+	[65] = "ALT",
+	[66] = "ESC",
+	[67] = "F1",
+	[68] = "F2",
+	[69] = "F3",
+	[70] = "F4",
+	[71] = "F5",
+	[72] = "F6",
+	[73] = "F7",
+	[74] = "F8",
+	[75] = "F9",
+	[76] = "F10",
+	[77] = "F11",
+	[78] = "F12",
+	[79] = "NUMPAD0",
+	[80] = "NUMPAD1",
+	[81] = "NUMPAD2",
+	[82] = "NUMPAD3",
+	[83] = "NUMPAD4",
+	[84] = "NUMPAD5",
+	[85] = "NUMPAD6",
+	[86] = "NUMPAD7",
+	[87] = "NUMPAD8",
+	[88] = "NUMPAD9",
+	[89] = "NUMPADPLUS",
+	[90] = "NUMPADMINUS",
+	[91] = "NUMPADMULTIPLY",
+	[92] = "NUMPADDIVIDE",
+	[93] = "NUMPADENTER",
+	[94] = "NUMPADPERIOD",
+}
+
+function keycode_to_char(keycode)
+	return keycodes[keycode] or "?"
+end
+
+local up_key = keycode_to_char(peek(0x14E04 + 0))
+local down_key = keycode_to_char(peek(0x14E04 + 1))
+local left_key = keycode_to_char(peek(0x14E04 + 2))
+local right_key = keycode_to_char(peek(0x14E04 + 3))
+local a_key = keycode_to_char(peek(0x14E04 + 4))
+local b_key = keycode_to_char(peek(0x14E04 + 5))
+local pause_key = keycode_to_char(peek(0x14E04 + 6))
+
 function Game.draw_title_screen()
 	local previous = peek4(0x3FFc * 2)
 	poke4(0x3FFC * 2, 3)
-	map(0, 0, 30, 17, 0, 0)
+	map(60, 0, 30, 17, 0, 0)
 
 	poke4(0x3FFC * 2, previous)
+
+	if t % 200 > 100 then
+		Game.print_keycodes()
+	else
+		Game.print_press_to_continue()
+	end
+end
+
+function Game.print_press_to_continue()
+	local txt = string.format("PRESS %s TO CONTINUE", a_key)
+	local width = print(txt, 0, -100)
+	local x = Screen.width // 2 - width // 2
+	local y = 94
+	print(txt, x, y, 8)
+end
+
+function Game.print_keycodes()
+	local x = 42
+	local y_start = 78
+	print(string.format("%s - confirm / rotate", a_key), x, y_start, 8)
+	print(string.format("%s - back / rotate", b_key), x, y_start + 8, 8)
+	print(string.format("%s/%s - move pill", left_key, right_key), x, y_start + 16, 8)
+	print(string.format("%s - hard drop / vanish", up_key), x, y_start + 24, 8)
+	print(string.format("%s - soft drop", down_key), x, y_start + 32, 8)
+	print(string.format("%s - pause", pause_key), x, y_start + 40, 8)
 end
 
 function Game.draw_screen_border()
@@ -2948,7 +3082,7 @@ end
 
 -- btnp repeat helper
 local REPEAT_DELAY = 20
-local REPEAT_RATE = 6
+local REPEAT_RATE = 3
 local hold = {}
 
 function btnp_repeat(b)
@@ -3032,6 +3166,9 @@ function TIC()
 	if Game.scene == SCENES.TITLE then
 		Game.draw_title_screen()
 		Game.draw_screen_border()
+		if btnp(KEYMAP_P1.A) then
+			Game.scene = SCENES.MENU
+		end
 	elseif Game.scene == SCENES.MENU then
 		Game.menu:update()
 		Game.menu:draw()
@@ -3574,14 +3711,14 @@ end
 
 -- <MAP>
 -- 000:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 001:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 002:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a4e4e4e4e5a5a5a5a5a5a5a5a5a5e5e5e5e5a5a5a5e5e5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 003:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a4e4e4e4e4e5a5a5a5a5a5a5a5e5e5e5e5e5e5a5e5e5e5e5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 004:5a5a5a5a5a5a5a277e5a5a5a5a5a5a5a5a6f87976f5a5a5a5a5a5a5a5a5a5a5a5a4e4e5a5a4e4e5a4f4f4f4f5a5e5e5a5a5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 005:5a5a5a5a5a5ade28afbf5a5a5a5a5a5a5a6fee5a675aee8e9eee5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f4f4f5a5e5e5a5a5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 006:5a5a5a5a5a5adf5a7eafbf5a8898ce5a5a6fef5a685aef8e9eef5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f5a4f5a5e5e5e5e5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 007:5a5a5a5a5a5ade7e5a5a7e5ace5acf5a5a8e9e6f6f5a6f5a5a5a5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f5a4f5a5a5e5e5e5e5a5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
--- 008:5a5a5a5a5a5adfde5a5ade5acf5a6e5a5a5a8e9e5a5a6f5a5aee5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f4f4f5a5e5e5e5e5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 001:e75a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 002:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a4e4e4e4e5a5a5a5a5a5a5a5a5a5e5e5e5e5a5a5a5e5e5e5e5a5a5a5a5a5a5a5a5f5f5f5f5f5f5f5f5f5f5a5f5f5f5f5f5f5f5f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 003:5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a4e4e4e4e4e5a5a5a5a5a5a5a5e5e5e5e5e5e5a5e5e5e5e5e5e5a5a5a5a5a5a5a5f6e6e6e5f5f7e7e7e5f5a5f6f6f6f5f6f6f6f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 004:5a5a5a5a5a5a5a277e5a5a5a5a5a5a5a5a6f87976f5a5a5a5a5a5a5a5a5a5a5a5a4e4e5a5a4e4e5a4f4f4f4f5a5e5e5a5a5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5f6e5f6e6e5f7e5f7e5f5a5f6f5f6f5f6f5f6f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 005:5a5a5a5a5a5ade28afbf5a5a5a5a5a5a5a6fee5a675aee8e9eee5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f4f4f5a5e5e5a5a5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5f6e5f5f6e5f7e7e5f5f5a5f6f6f6f5f6f5f6f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 006:5a5a5a5a5a5adf5a7eafbf5a8898ce5a5a6fefe7685aef8e9eef5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f5a4f5a5e5e5e5e5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5f6e5f6e6e5f7e7e7e5f5f5f6f5f6f5f6f5f6f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 007:5a5a5a5a5a5ade7e5a5a7e5ace5acf5a5a8e9e6f6f5a6f5a5a5a5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f5a4f5a5a5e5e5e5e5a5a5e5e5a5a5e5e5a5a5a5a5a5a5a5f6e6e6e5f5f7e5f7e7e5f5f6f6f6f5f6f6f6f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
+-- 008:5a5a5a5a5a5adfde5a5ade5acf5a6e5a5a5a8e9e5a5a6f5a5aee5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f4f4f5a5e5e5e5e5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
 -- 009:5a5a5a5a5a5a7edf5a5adf5aaebe5a5a5a6fee5a6f5aee5a5aef5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f4f5a5a5a5e5e5a5a5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
 -- 010:5a5a5a5a5a5adeafbfafbf5f6e6e6e5a5f6fef5a6f5aef8e9e6f5a5a5a5a5a5a5a4e4e5a5a5a4e4e4f5a4f4f5a5e5e5a5a5e5e5a5e5e5a5a5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
 -- 011:5a5a5a5a5a5adf07177e5f5f6e5a6e5f5f8e9e8e9e5f8e9e8e9e5a5a5a5a5a5a5a4e4e4e4e4e4e4e4f5a4f4f5a5e5e5e5e5e5e5a5e5e5e5e5e5e5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a
@@ -3745,10 +3882,10 @@ end
 -- 017:5df05dc05d005d005d905d705d006d506d606d006d006d906d007d007d208d108d009d009d00ad00bd00bd00dd00ed00fd00fd00fd00fd00fd00fd00346000000000
 -- 018:fe0a2e8ebe012e948e052ec7fe07fe07fe071ef72ed63e95fe648ec29e70fe3dae9cbe5afe29de18ee00ee00fe00fe00fe00fe00fe00fe00fe00fe00255000000000
 -- 019:ff0b2f8fbf022f948f062fc6ff06ff05ff051ff42fd33f92ff618fc09f7eff3caf9abf58ff28df18ef00ef00ff00ff00ff00ff00ff00ff00ff00ff00450000000000
--- 020:0cc60cc51cc1fcb02c8f4c5a9c10fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00300000000000
--- 021:0db61db6fdb51da02d6b4d09fd09fd0ffd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00306000000000
+-- 020:0cc60cc51cc1fcb02c8f4c5a9c10fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00200000000000
+-- 021:0db61db6fdb51da02d6b4d09fd09fd0ffd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00206000000000
 -- 022:0e750e754e63fe6f1e5b3e0abe0afe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00205000000000
--- 023:0f761f75ff63ff6f3f5d3f0cff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00400000000000
+-- 023:0f761f75ff63ff6f3f5d3f0cff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00300000000000
 -- 024:0c001c702c003c904c005cb07c009cd0ac00ccf0dc00ec00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00fc00370000000000
 -- 025:0d001d702d003d904d005db07d009dd0ad00cdf0dd00ed00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00fd00376000000000
 -- 026:0e001e703e003e904e004eb07e005ed06e007ef08e009e00ae00ce00de00ee00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00fe00275000000000
@@ -3824,3 +3961,4 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
+
