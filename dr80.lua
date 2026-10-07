@@ -372,6 +372,7 @@ local Audio = {
 		arcade = { "E-3", "G-3", "A-3", "C-4" },
 	},
 	music_muted = false,
+	sfx_cooldown = {},
 }
 
 function Audio.play_bgm(track, tempo)
@@ -406,7 +407,11 @@ function Audio.stop_bgm()
 end
 
 function Audio.play(id, speed, note)
-	sfx(id, note, -1, Audio.reserved.sfx, 15, speed or 0, false)
+	local now = time()
+	if Audio.sfx_cooldown[id] == nil or now - Audio.sfx_cooldown[id] > 250 then
+		sfx(id, note, -1, Audio.reserved.sfx, 15, speed or 0, false)
+		Audio.sfx_cooldown[id] = now
+	end
 end
 
 function Audio.generate_character_note(combo, character_name)
@@ -1402,6 +1407,10 @@ function Grid:special_ability()
 end
 
 function Grid:vanish_pill()
+	if self.active_pill == nil then
+		return
+	end
+
 	local x1, y1, x2, y2 = self:get_pill_xy(self.active_pill)
 	self:add_animation_to_queue(ANIMATIONS.DISAPPEARING_PILL, {
 		x = x1,
@@ -3164,6 +3173,7 @@ function TIC()
 	rectb(0, 0, 240, 136, 12)
 
 	if Game.scene == SCENES.TITLE then
+		Audio.play_bgm(Assets.music.menu)
 		Game.draw_title_screen()
 		Game.draw_screen_border()
 		if btnp(KEYMAP_P1.A) then
@@ -3173,7 +3183,6 @@ function TIC()
 		Game.menu:update()
 		Game.menu:draw()
 		Game.draw_screen_border()
-		Audio.play_bgm(Assets.music.menu)
 	elseif Game.scene == SCENES.PARAMS then
 		Game.update_params()
 		Game.draw_player_menus()
@@ -3961,4 +3970,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
