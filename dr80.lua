@@ -185,6 +185,12 @@ local Assets = {
 				{ name = "S", W = 506, E = 507, N = 493, S = 509 },
 				{ name = "E", W = 488, E = 489, N = 494, S = 510 },
 			},
+			power_drop_shadows_reference = { -- used for initializing shadows below
+				{ name = "R", W = 416, E = 417, N = 418, S = 434 },
+				{ name = "S", W = 432, E = 433, N = 419, S = 435 },
+				{ name = "E", W = 448, E = 449, N = 420, S = 436 },
+			},
+			shadows = {}, -- used in the game. initialized below
 			dark_pills = { 482, 498, 480 },
 			viruses = {
 				R = 256,
@@ -324,6 +330,14 @@ local Assets = {
 		},
 	},
 }
+
+for i, pill in ipairs(Assets.sprites.pieces.pills) do
+	for _, direction in ipairs({ "N", "S", "W", "E" }) do
+		local pill_spr = pill[direction]
+		local shadow_spr = Assets.sprites.pieces.power_drop_shadows_reference[i][direction]
+		Assets.sprites.pieces.shadows[pill_spr] = shadow_spr
+	end
+end
 
 local SCENES = {
 	TITLE = -1,
@@ -1518,6 +1532,10 @@ function Grid:get_pill_sprites(pill)
 	return spr1, spr2
 end
 
+function Grid:map_pill_sprites_to_power_drop_shadow_sprites(spr1, spr2)
+	return Assets.sprites.pieces.shadows[spr1], Assets.sprites.pieces.shadows[spr2]
+end
+
 function Grid:draw_static_pills()
 	for _, pill in ipairs(self.static_pills) do
 		if pill == nil then
@@ -1530,6 +1548,18 @@ function Grid:draw_static_pills()
 		spr(spr1, x1 * self.cell_size, y1 * self.cell_size, 0)
 		spr(spr2, x2 * self.cell_size, y2 * self.cell_size, 0)
 	end
+end
+
+function Grid:draw_power_drop_shadow()
+	if self.active_pill == nil then
+		return
+	end
+
+	local x1, y1, x2, y2 = self:get_pill_xy()
+	local spr1, spr2 = self:get_pill_sprites()
+
+	spr(spr1, self:cx(x1), self:cy(y1), 0)
+	spr(spr2, self:cx(x2), self:cy(y2), 0)
 end
 
 function Grid:draw_active_pill()
@@ -1965,7 +1995,7 @@ function Grid:draw_score_in_settings()
 	elseif Game.players == 4 then
 		limit = 6
 	end
-	if self.score_tmp < limit then
+	if self.score_tmp ~= nil and self.score_tmp < limit then
 		for c = 1, self.score_tmp, 1 do
 			spr(Assets.sprites.ui.score_coin, x + 7 * c, y, 0)
 		end
@@ -3183,11 +3213,18 @@ function TIC()
 		Game.menu:update()
 		Game.menu:draw()
 		Game.draw_screen_border()
+		if btnp(KEYMAP_P1.B) then
+			Game.scene = SCENES.TITLE
+		end
 	elseif Game.scene == SCENES.PARAMS then
 		Game.update_params()
 		Game.draw_player_menus()
 		Game.evaluate_readiness()
 		Game.draw_screen_border()
+		if btnp(KEYMAP_P1.B) then
+			Game.reset_grids()
+			Game.scene = SCENES.MENU
+		end
 	elseif Game.scene == SCENES.GAME then
 		if Game.grids_spawned then
 			if Game.eval_winner() or Game.eval_game_overs() then
