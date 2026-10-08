@@ -35,7 +35,7 @@ local Screen = {
 
 -- TODO add more config options here
 local Config = {
-	pill_sequence_cleanup_interval_frames = 1000,
+	pill_sequence_cleanup_interval_frames = 3600,
 }
 
 local Assets = {
@@ -678,12 +678,12 @@ local Game = {
 
 function Game.cleanup_pill_sequence()
 	local earliest = math.huge
-	for _, grid in ipairs(self.grids) do
+	for _, grid in ipairs(Game.grids) do
 		if not grid.game_over then
 			earliest = math.min(earliest, grid.pill_number)
 		end
 	end
-	self.pill_sequence:discard_before(earliest)
+	Game.pill_sequence:discard_before(earliest)
 end
 
 function Game.setup_game(players)
