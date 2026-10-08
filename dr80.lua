@@ -41,15 +41,6 @@ local Assets = {
 		winner = 3,
 	},
 	sfx = {
-		common = {
-			land = 0,
-			move = 1,
-			rotate = 2,
-			clear = 3,
-			overflow = 4,
-			invalid = 5,
-			drop = 6,
-		},
 		character = {
 			move_deprecated = { 8, 9, 10, 11 },
 			land = { 12, 13, 14, 15 },
