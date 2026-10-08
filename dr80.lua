@@ -33,6 +33,11 @@ local Screen = {
 	width = 240,
 }
 
+-- TODO add more config options here
+local Config = {
+	pill_sequence_cleanup_interval_frames = 1000,
+}
+
 local Assets = {
 	music = {
 		flora = 0,
@@ -497,17 +502,17 @@ end
 ---@field pills table<integer, Pill>
 ---@field head number
 ---@field tail number
-local PillQueue = {}
-PillQueue.__index = PillQueue
+local PillSequence = {}
+PillSequence.__index = PillSequence
 
 ---Generates the queue without the pills. Needs to be filled before using.
-function PillQueue:new()
+function PillSequence:new()
 	local queue = setmetatable({ head = 1, tail = 0, pills = {} }, self)
 	return queue
 end
 
 ---Fills queue with the specified number of pills. They're appended at the end of the queue.
-function PillQueue:fill(number)
+function PillSequence:fill(number)
 	for i = 1, number do
 		local rune1, rune2 = PillFactory.generate_random_runes()
 		self.pills[self.tail + i] = {
@@ -519,7 +524,7 @@ function PillQueue:fill(number)
 end
 
 ---Clears the queue and all metadata.
-function PillQueue:clear()
+function PillSequence:clear()
 	self.pills = {}
 	self.head = 1
 	self.tail = 0
@@ -527,7 +532,7 @@ end
 
 ---Discards all pills before the index (excluding index).
 ---@param index integer
-function PillQueue:discard_before(index)
+function PillSequence:discard_before(index)
 	if self.head > index then
 		return
 	end
@@ -539,14 +544,14 @@ end
 
 ---Returns current queue size.
 ---@return integer size
-function PillQueue:size()
+function PillSequence:size()
 	return self.tail - self.head + 1
 end
 
 ---Retrieves pill with given index from the queue. If it doesn't exist, it fills the queue with 100 new pills.
 ---@param index integer
 ---@return Pill? pill
-function PillQueue:get_with_refill(index)
+function PillSequence:get_with_refill(index)
 	if index < self.head or index % 1 ~= 0 then
 		return nil
 	end
@@ -654,7 +659,7 @@ Grid.__index = Grid
 ---@field grids_spawned boolean
 ---@field dont_draw_top_border_positions integer[]
 ---@field next_game_overlay_delay_frames integer
----@field pill_queue PillSequence
+---@field pill_sequence PillSequence
 local Game = {
 	scene = SCENES.TITLE,
 	mode = MODES.CLASSIC,
@@ -668,13 +673,21 @@ local Game = {
 	next_game_overlay_delay_frames = 120,
 	is_paused = false,
 	paused_by_player = 0,
-	pill_queue = PillQueue:new(),
+	pill_sequence = PillSequence:new(),
 }
+
+function Game.cleanup_pill_sequence()
+	local earliest = math.huge
+	for _, grid in ipairs(self.grids) do
+		earliest = math.min(earliest, grid.pill_number)
+	end
+	self.pill_sequence:discard_before(earliest)
+end
 
 function Game.setup_game(players)
 	Game.players = players
 	Game.frame = 0
-	Game.pill_queue:fill(200)
+	Game.pill_sequence:fill(200)
 
 	for i = 1, players, 1 do
 		local grid = Grid:new(i)
@@ -780,7 +793,7 @@ function Game.evaluate_speed_up()
 end
 
 function Game.reset_grids() -- resets the grids and returns stored settings
-	Game.pill_queue:clear()
+	Game.pill_sequence:clear()
 	Game.grids_spawned = false
 	Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
 	Game.next_game_overlay_delay_frames = 120
@@ -1467,7 +1480,7 @@ function Grid:draw_stage_border()
 end
 
 function Grid:generate_next_pill()
-	local pill = Game.pill_queue:get_with_refill(self.pill_number)
+	local pill = Game.pill_sequence:get_with_refill(self.pill_number)
 	if not pill then
 		return
 	end
@@ -3333,6 +3346,9 @@ function TIC()
 			end
 		else
 			Game.spawn_grids()
+		end
+		if t % Config.pill_sequence_cleanup_interval_frames == 0 then
+			Game.cleanup_pill_sequence()
 		end
 		Game.draw_screen_border()
 	elseif Game.scene == SCENES.GAME_OVER then
