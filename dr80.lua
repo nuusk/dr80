@@ -679,7 +679,9 @@ local Game = {
 function Game.cleanup_pill_sequence()
 	local earliest = math.huge
 	for _, grid in ipairs(self.grids) do
-		earliest = math.min(earliest, grid.pill_number)
+		if not grid.game_over then
+			earliest = math.min(earliest, grid.pill_number)
+		end
 	end
 	self.pill_sequence:discard_before(earliest)
 end
