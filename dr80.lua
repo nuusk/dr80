@@ -33,71 +33,6 @@ local Screen = {
 	width = 240,
 }
 
-Console = {
-	open = false,
-	lines = {},
-	max = 220,
-	scroll = 0,
-	actions = {},
-	action_keys = { 4, 5, 6, 7 },
-	action_labels = {},
-}
-
-function Console.toggle()
-	Console.open = not Console.open
-end
-
-function Console.log(msg)
-	trace(msg)
-	local t = tstamp()
-
-	local hours = math.floor(t / 3600) % 24
-	local minutes = math.floor(t / 60) % 60
-	local seconds = math.floor(t) % 60
-	local s = string.format("[%02d:%02d:%02d] %s", hours, minutes, seconds, tostring(msg))
-
-	table.insert(Console.lines, s)
-	if #Console.lines > Console.max then
-		table.remove(Console.lines, 1)
-	end
-end
-
-function Console.clear()
-	Console.lines = {}
-end
-
-function Console.update()
-	if btnp(7) then
-		-- Console.toggle()
-	end
-	if not Console.open then
-		return
-	end
-	if btnp(2) then
-		Console.scroll = math.min(Console.scroll + 1, math.max(0, #Console.lines - 1))
-	end
-	if btnp(3) then
-		Console.scroll = math.max(Console.scroll - 1, 0)
-	end
-end
-
-function Console.draw()
-	if not Console.open then
-		return
-	end
-	local w, h = 140, 130
-	local x, y = 100, 0
-	rect(x, y, w, h, 0)
-	rectb(x, y, w, h, 13)
-	local visible = 14
-	local start = math.max(1, #Console.lines - visible - Console.scroll + 1)
-	local idx = 0
-	for i = start, math.min(#Console.lines, start + visible - 1) do
-		print(Console.lines[i], x + 4, y + 4 + idx * 8, 12, false, 1, true)
-		idx = idx + 1
-	end
-end
-
 local Assets = {
 	music = {
 		flora = 0,
@@ -339,6 +274,30 @@ for i, pill in ipairs(Assets.sprites.pieces.pills) do
 	end
 end
 
+---@enum Target
+local TARGETS = {
+	LEADER = 0,
+	PLAYER_1 = 1,
+	PLAYER_2 = 2,
+	PLAYER_3 = 3,
+	PLAYER_4 = 4,
+	RANDOM = 5,
+}
+
+---@enum Cell
+local CELL_TYPES = {
+	STONE = "stone",
+	HALF = "half",
+	PILL = "pill",
+}
+
+---@enum Setting
+local SETTING_TYPES = {
+	NUMBER = "number",
+	CHARACTER = "character",
+}
+
+---@enum Scene
 local SCENES = {
 	TITLE = -1,
 	MENU = 0,
@@ -347,6 +306,7 @@ local SCENES = {
 	GAME_OVER = 3,
 }
 
+---@enum Mode
 local MODES = {
 	CLASSIC = 0,
 	CAMPAIGN = 1,
@@ -356,90 +316,17 @@ local MODES = {
 	POWER_DROP = 5,
 }
 
-local Game = {
-	scene = SCENES.TITLE,
-	mode = MODES.CLASSIC,
-	---@type Grid[]
-	grids = {},
-	---@type integer[]
-	scores = { 0, 0, 0, 0 },
-	players = 1,
-	winner = 0,
-	frame = 0,
-	grids_spawned = false,
-	dont_draw_top_border_positions = {},
-	next_game_overlay_delay_frames = 120,
-	is_paused = false,
-	paused_by_player = 0,
-}
+---@class Keymap
+---@field UP integer
+---@field DOWN integer
+---@field LEFT integer
+---@field RIGHT integer
+---@field A integer
+---@field B integer
+---@field PAUSE integer
+---@field SUPER integer
 
--- Audio manager --
-
-local Audio = {
-	bgm = nil,
-	reserved = {
-		sfx = 3,
-		bgm = { 0, 1, 2 },
-	},
-	chords = {
-		happy = { "C-4", "D-4", "E-4", "G-4" },
-		arcade = { "E-3", "G-3", "A-3", "C-4" },
-	},
-	music_muted = false,
-	sfx_cooldown = {},
-}
-
-function Audio.play_bgm(track, tempo)
-	if Audio.music_muted then
-		Audio.bgm = track
-		Audio.tempo = tempo
-		return
-	end
-	if Audio.bgm == track and tempo == Audio.tempo and Audio.music_muted == false then
-		return
-	elseif Audio.bgm == track and tempo ~= Audio.tempo then
-		music(track, -1, -1, true, false, tempo or -1)
-	else
-		music(track, 0, 0, true, false, tempo or -1)
-	end
-	Audio.bgm = track
-	Audio.tempo = tempo
-end
-
-function Audio.toggle_music_mute()
-	Audio.music_muted = not Audio.music_muted
-	if Audio.music_muted then
-		music(-1)
-	elseif Audio.bgm ~= nil then
-		music(Audio.bgm, 0, 0, true, false, Audio.tempo or -1)
-	end
-end
-
-function Audio.stop_bgm()
-	music(-1)
-	Audio.bgm = nil
-end
-
-function Audio.play(id, speed, note)
-	local now = time()
-	if Audio.sfx_cooldown[id] == nil or now - Audio.sfx_cooldown[id] > 250 then
-		sfx(id, note, -1, Audio.reserved.sfx, 15, speed or 0, false)
-		Audio.sfx_cooldown[id] = now
-	end
-end
-
-function Audio.generate_character_note(combo, character_name)
-	local note = Audio.chords.happy[math.min(combo, 4)]
-	if character_name == "amethyst" or character_name == "pearl" then
-		note = Audio.chords.arcade[math.min(combo, 4)]
-	end
-	return note
-end
-
--- Audio manager end --
-
--- Keymap start --
-
+---@type Keymap
 local KEYMAP_P1 = {
 	UP = 0,
 	DOWN = 1,
@@ -451,6 +338,7 @@ local KEYMAP_P1 = {
 	SUPER = 7,
 }
 
+---@type Keymap
 local KEYMAP_P2 = {
 	UP = 8,
 	DOWN = 9,
@@ -462,6 +350,7 @@ local KEYMAP_P2 = {
 	SUPER = 15,
 }
 
+---@type Keymap
 local KEYMAP_P3 = {
 	UP = 16,
 	DOWN = 17,
@@ -473,6 +362,7 @@ local KEYMAP_P3 = {
 	SUPER = 23,
 }
 
+---@type Keymap
 local KEYMAP_P4 = {
 	UP = 24,
 	DOWN = 25,
@@ -491,31 +381,86 @@ local KEYMAPS = {
 	KEYMAP_P4,
 }
 
--- Keymap end --
-
--- Targets
-
-local TARGETS = {
-	LEADER = 0,
-	PLAYER_1 = 1,
-	PLAYER_2 = 2,
-	PLAYER_3 = 3,
-	PLAYER_4 = 4,
-	RANDOM = 5,
+---@class Audio
+---@field bgm integer?
+---@field reserved {sfx: integer, bgm: integer[]}
+---@field chords {happy: string[], arcade: string[]}
+---@field music_muted boolean
+---@field sfx_cooldown table<integer, number>
+local Audio = {
+	bgm = nil,
+	reserved = {
+		sfx = 3,
+		bgm = { 0, 1, 2 },
+	},
+	chords = {
+		happy = { "C-4", "D-4", "E-4", "G-4" },
+		arcade = { "E-3", "G-3", "A-3", "C-4" },
+	},
+	music_muted = false,
+	sfx_cooldown = {},
 }
 
-local CELL_TYPES = {
-	STONE = "stone",
-	HALF = "half",
-	PILL = "pill",
-}
+---Plays background music with given tempo.
+---@param track integer
+---@param tempo integer
+function Audio.play_bgm(track, tempo)
+	if Audio.music_muted then
+		Audio.bgm = track
+		Audio.tempo = tempo
+		return
+	end
+	if Audio.bgm == track and tempo == Audio.tempo and Audio.music_muted == false then
+		return
+	elseif Audio.bgm == track and tempo ~= Audio.tempo then
+		music(track, -1, -1, true, false, tempo or -1)
+	else
+		music(track, 0, 0, true, false, tempo or -1)
+	end
+	Audio.bgm = track
+	Audio.tempo = tempo
+end
 
-local SETTING_TYPES = {
-	NUMBER = "number",
-	CHARACTER = "character",
-}
+---Mutes background music when it's not muted, unmute it when it's muted.
+---The track is reset each time it's being unmuted.
+function Audio.toggle_music_mute()
+	Audio.music_muted = not Audio.music_muted
+	if Audio.music_muted then
+		music(-1)
+	elseif Audio.bgm ~= nil then
+		music(Audio.bgm, 0, 0, true, false, Audio.tempo or -1)
+	end
+end
 
--- Grid manager --
+---Stops background music.
+function Audio.stop_bgm()
+	music(-1)
+	Audio.bgm = nil
+end
+
+---Plays sfx with given speed and note.
+---@param id integer
+---@param speed integer
+---@param note integer
+function Audio.play(id, speed, note)
+	local now = time()
+	if Audio.sfx_cooldown[id] == nil or now - Audio.sfx_cooldown[id] > 250 then
+		sfx(id, note, -1, Audio.reserved.sfx, 15, speed or 0, false)
+		Audio.sfx_cooldown[id] = now
+	end
+end
+
+---Selects notes for playing combos based on the character name.
+---@param combo integer
+---@param character_name string
+function Audio.generate_character_note(combo, character_name)
+	local note = Audio.chords.happy[math.min(combo, 4)]
+	if character_name == "amethyst" or character_name == "pearl" then
+		note = Audio.chords.arcade[math.min(combo, 4)]
+	end
+	return note
+end
+
 ---@class GridSetting
 ---@field text string
 ---@field type "number" | "character"
@@ -549,6 +494,244 @@ local Grid = {
 	},
 }
 Grid.__index = Grid
+
+---@class Game
+---@field scene Scene
+---@field mode Mode
+---@field grids Grid[]
+---@field scores integer[]
+---@field players integer
+---@field winner integer
+---@field frame integer
+---@field grids_spawned boolean
+---@field dont_draw_top_border_positions integer[]
+---@field next_game_overlay_delay_frames integer
+local Game = {
+	scene = SCENES.TITLE,
+	mode = MODES.CLASSIC,
+	grids = {},
+	scores = { 0, 0, 0, 0 },
+	players = 1,
+	winner = 0,
+	frame = 0,
+	grids_spawned = false,
+	dont_draw_top_border_positions = {},
+	next_game_overlay_delay_frames = 120,
+	is_paused = false,
+	paused_by_player = 0,
+}
+
+function Game.setup_game(players)
+	Game.players = players
+	Game.frame = 0
+
+	for i = 1, players, 1 do
+		local grid = Grid:new(i)
+		table.insert(Game.grids, grid)
+	end
+
+	Game.scene = SCENES.PARAMS
+end
+
+function Game.pause_by_player(player)
+	Game.is_paused = not Game.is_paused
+	Game.paused_by_player = player
+	if not Game.is_paused then
+		Game.paused_by_player = 0
+	end
+end
+
+function Game.character_already_taken(i)
+	for _, b in ipairs(Game.grids) do
+		if b.selected_character == i then
+			return true
+		end
+	end
+	return false
+end
+
+function Game.find_leader(excluded_player)
+	local leader = 1
+	local min = 9999999
+	for _, grid in pairs(Game.grids) do
+		if grid.player == excluded_player then
+			goto continue
+		end
+
+		if grid.num_stones < min then
+			min = grid.num_stones
+			leader = grid.player
+		end
+		::continue::
+	end
+
+	return leader
+end
+
+function Game.find_random(excluded_player)
+	local bag = {}
+	for _, grid in pairs(Game.grids) do
+		if grid.player == excluded_player then
+			goto continue
+		end
+
+		trace("bag has " .. grid.player)
+		table.insert(bag, grid.player)
+		::continue::
+	end
+
+	local rand = math.random(#bag)
+	trace("chose " .. rand)
+	return bag[rand]
+end
+
+function Game.send_surprises(victim, combo)
+	trace("victim: " .. victim)
+	trace("combo: " .. combo)
+	trace("#grids: " .. #Game.grids)
+	trace("#players: " .. Game.players)
+
+	for _, grid in pairs(Game.grids) do
+		trace(grid.player)
+	end
+
+	local num_surprises = combo + 1
+	Game.grids[victim]:queue_surprises(num_surprises)
+end
+
+function Game.update_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:update()
+	end
+end
+
+function Game.draw_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:draw()
+	end
+end
+
+function Game.animate_grids()
+	for _, grid in pairs(Game.grids) do
+		grid:animate_all()
+	end
+end
+
+function Game.evaluate_speed_up()
+	-- every minute, speed up
+	if Game.frame % 3600 == 0 then
+		for _, grid in pairs(Game.grids) do
+			grid:queue_speed_up(1)
+		end
+	end
+end
+
+function Game.reset_grids() -- resets the grids and returns stored settings
+	Game.grids_spawned = false
+	Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
+	Game.next_game_overlay_delay_frames = 120
+	local saved = {}
+	for i, grid in pairs(Game.grids) do
+		saved[i] = {
+			settings = table.deep_copy(grid.settings),
+			selected_character = grid.selected_character,
+		}
+	end
+	Game.grids = {}
+	return saved
+end
+
+function Game.redo_settings()
+	for _, grid in pairs(Game.grids) do
+		grid.selected_character = nil
+		grid.settings_confirmed = false
+	end
+end
+
+function Game.restore_settings(saved)
+	Game.setup_game(Game.players)
+	for i, grid in pairs(Game.grids) do
+		grid.settings = saved[i].settings
+		grid.selected_character = saved[i].selected_character
+		grid.settings_confirmed = true
+	end
+	Game.evaluate_readiness()
+end
+
+function Game.spawn_grids()
+	local spawn_ended = true
+	for _, grid in pairs(Game.grids) do
+		local ended = grid:spawn_grid(t)
+		spawn_ended = spawn_ended and ended
+	end
+	if spawn_ended == true then
+		Game.grids_spawned = true
+	end
+end
+
+function Game.evaluate_readiness()
+	local all_ready = true
+	for _, grid in pairs(Game.grids) do
+		all_ready = all_ready and grid.settings_confirmed
+	end
+	if all_ready == true then
+		local board_presets = {}
+		for _, grid in ipairs(Game.grids) do
+			grid:apply_settings(board_presets)
+		end
+
+		if Game.players == 1 then
+			Game.grids[1].stage_visible = true
+		end
+
+		Audio.play_bgm(Assets.music.fever)
+		Game.scene = SCENES.GAME
+	end
+end
+
+function Game.update_params()
+	for _, grid in pairs(Game.grids) do
+		grid:update_params()
+	end
+end
+
+function Game.draw_player_menus()
+	for i, grid in pairs(Game.grids) do
+		grid.score_tmp = Game.scores[i]
+		grid:draw_player_menu()
+	end
+end
+
+function Game.draw_next_game_overlay()
+	rect(72, 52, 96, 38, 0) -- dark backdrop
+	rectb(72, 52, 96, 38, 12) -- thin border
+end
+
+function Game.draw_pause_overlay()
+	rect(72, 55, 96, 21, 0) -- dark backdrop
+	rectb(72, 55, 96, 21, 12) -- thin border
+
+	print("PAUSED", 102, 60, 8)
+	print(string.format("(by player %d)", Game.paused_by_player), 86, 66, 8)
+end
+
+function Game.draw_score_overlay()
+	local y_anchor = 45 - 6 * Game.players
+	local x_anchor = 72
+	rect(x_anchor, y_anchor, 96, 8 + 6 * Game.players, 0)
+	rectb(x_anchor, y_anchor, 96, 8 + 6 * Game.players, 12)
+	for i in ipairs(Game.grids) do
+		print(string.format("P%d", i), x_anchor + 6, y_anchor - 2 + i * 6, 8)
+		if Game.scores[i] < 10 then
+			for c = 1, Game.scores[i], 1 do
+				spr(Assets.sprites.ui.score_coin, x_anchor + 14 + 7 * c, y_anchor - 3 + i * 6, 0)
+			end
+		else
+			spr(Assets.sprites.ui.score_coin, x_anchor + 21, y_anchor - 3 + i * 6, 0)
+			print(string.format("x%d", Game.scores[i]), x_anchor + 32, y_anchor - 2 + i * 6, 8)
+		end
+	end
+end
 
 function Grid:new(player)
 	local g = setmetatable({}, Grid)
@@ -845,7 +1028,7 @@ end
 function Grid:draw_character(t)
 	local char = self.character
 	if char == nil then
-		Console.log("ERROR: character is nil, fix the code")
+		trace("ERROR: character is nil, fix the code")
 		return
 	end
 
@@ -985,7 +1168,7 @@ function Grid:generate_stones()
 	local preset = presets[self.settings[1].value]
 
 	if not preset then
-		Console.log("level too high")
+		trace("level too high")
 		return {}
 	end
 
@@ -1531,7 +1714,7 @@ end
 function Grid:get_pill_sprites(pill)
 	pill = pill or self.active_pill
 	if not pill then
-		Console.log("error: pill not found")
+		trace("error: pill not found")
 		return
 	end
 
@@ -1556,7 +1739,7 @@ end
 function Grid:draw_static_pills()
 	for _, pill in ipairs(self.static_pills) do
 		if pill == nil then
-			Console.log("static pill is nil")
+			trace("static pill is nil")
 			return
 		end
 
@@ -1706,7 +1889,7 @@ end
 
 function Grid:mark_active_pill_as_static()
 	if self.active_pill == nil then
-		Console.log("cannot mark pill as static, active pill not found")
+		trace("cannot mark pill as static, active pill not found")
 		return
 	end
 
@@ -2162,222 +2345,6 @@ function Grid:selected_setting_minus()
 	end
 end
 
--- Grid manager end --
-
--- Game manager --
-
-function Game.setup_game(players)
-	Game.players = players
-	Game.frame = 0
-
-	for i = 1, players, 1 do
-		local grid = Grid:new(i)
-		table.insert(Game.grids, grid)
-	end
-
-	Game.scene = SCENES.PARAMS
-end
-
-function Game.pause_by_player(player)
-	Game.is_paused = not Game.is_paused
-	Game.paused_by_player = player
-	if not Game.is_paused then
-		Game.paused_by_player = 0
-	end
-end
-
-function Game.character_already_taken(i)
-	for _, b in ipairs(Game.grids) do
-		if b.selected_character == i then
-			return true
-		end
-	end
-	return false
-end
-
-function Game.find_leader(excluded_player)
-	local leader = 1
-	local min = 9999999
-	for _, grid in pairs(Game.grids) do
-		if grid.player == excluded_player then
-			goto continue
-		end
-
-		if grid.num_stones < min then
-			min = grid.num_stones
-			leader = grid.player
-		end
-		::continue::
-	end
-
-	return leader
-end
-
-function Game.find_random(excluded_player)
-	local bag = {}
-	for _, grid in pairs(Game.grids) do
-		if grid.player == excluded_player then
-			goto continue
-		end
-
-		Console.log("bag has " .. grid.player)
-		table.insert(bag, grid.player)
-		::continue::
-	end
-
-	local rand = math.random(#bag)
-	Console.log("chose " .. rand)
-	return bag[rand]
-end
-
-function Game.send_surprises(victim, combo)
-	Console.log("victim: " .. victim)
-	Console.log("combo: " .. combo)
-	Console.log("#grids: " .. #Game.grids)
-	Console.log("#players: " .. Game.players)
-
-	for _, grid in pairs(Game.grids) do
-		Console.log(grid.player)
-	end
-
-	local num_surprises = combo + 1
-	Game.grids[victim]:queue_surprises(num_surprises)
-end
-
-function Game.update_grids()
-	for _, grid in pairs(Game.grids) do
-		grid:update()
-	end
-end
-
-function Game.draw_grids()
-	for _, grid in pairs(Game.grids) do
-		grid:draw()
-	end
-end
-
-function Game.animate_grids()
-	for _, grid in pairs(Game.grids) do
-		grid:animate_all()
-	end
-end
-
-function Game.evaluate_speed_up()
-	-- every minute, speed up
-	if Game.frame % 3600 == 0 then
-		for _, grid in pairs(Game.grids) do
-			grid:queue_speed_up(1)
-		end
-	end
-end
-
-function Game.reset_grids() -- resets the grids and returns stored settings
-	Game.grids_spawned = false
-	Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
-	Game.next_game_overlay_delay_frames = 120
-	local saved = {}
-	for i, grid in pairs(Game.grids) do
-		saved[i] = {
-			settings = table.deep_copy(grid.settings),
-			selected_character = grid.selected_character,
-		}
-	end
-	Game.grids = {}
-	return saved
-end
-
-function Game.redo_settings()
-	for _, grid in pairs(Game.grids) do
-		grid.selected_character = nil
-		grid.settings_confirmed = false
-	end
-end
-
-function Game.restore_settings(saved)
-	Game.setup_game(Game.players)
-	for i, grid in pairs(Game.grids) do
-		grid.settings = saved[i].settings
-		grid.selected_character = saved[i].selected_character
-		grid.settings_confirmed = true
-	end
-	Game.evaluate_readiness()
-end
-
-function Game.spawn_grids()
-	local spawn_ended = true
-	for _, grid in pairs(Game.grids) do
-		local ended = grid:spawn_grid(t)
-		spawn_ended = spawn_ended and ended
-	end
-	if spawn_ended == true then
-		Game.grids_spawned = true
-	end
-end
-
-function Game.evaluate_readiness()
-	local all_ready = true
-	for _, grid in pairs(Game.grids) do
-		all_ready = all_ready and grid.settings_confirmed
-	end
-	if all_ready == true then
-		local board_presets = {}
-		for _, grid in ipairs(Game.grids) do
-			grid:apply_settings(board_presets)
-		end
-
-		if Game.players == 1 then
-			Game.grids[1].stage_visible = true
-		end
-
-		Audio.play_bgm(Assets.music.fever)
-		Game.scene = SCENES.GAME
-	end
-end
-
-function Game.update_params()
-	for _, grid in pairs(Game.grids) do
-		grid:update_params()
-	end
-end
-
-function Game.draw_player_menus()
-	for i, grid in pairs(Game.grids) do
-		grid.score_tmp = Game.scores[i]
-		grid:draw_player_menu()
-	end
-end
-
-function Game.draw_next_game_overlay()
-	rect(72, 52, 96, 38, 0) -- dark backdrop
-	rectb(72, 52, 96, 38, 12) -- thin border
-end
-
-function Game.draw_pause_overlay()
-	rect(72, 55, 96, 21, 0) -- dark backdrop
-	rectb(72, 55, 96, 21, 12) -- thin border
-
-	print("PAUSED", 102, 60, 8)
-	print(string.format("(by player %d)", Game.paused_by_player), 86, 66, 8)
-end
-
-function Game.draw_score_overlay()
-	local y_anchor = 45 - 6 * Game.players
-	local x_anchor = 72
-	rect(x_anchor, y_anchor, 96, 8 + 6 * Game.players, 0)
-	rectb(x_anchor, y_anchor, 96, 8 + 6 * Game.players, 12)
-	for i in ipairs(Game.grids) do
-		print(string.format("P%d", i), x_anchor + 6, y_anchor - 2 + i * 6, 8)
-		if Game.scores[i] < 10 then
-			for c = 1, Game.scores[i], 1 do
-				spr(Assets.sprites.ui.score_coin, x_anchor + 14 + 7 * c, y_anchor - 3 + i * 6, 0)
-			end
-		else
-			spr(Assets.sprites.ui.score_coin, x_anchor + 21, y_anchor - 3 + i * 6, 0)
-			print(string.format("x%d", Game.scores[i]), x_anchor + 32, y_anchor - 2 + i * 6, 8)
-		end
-	end
-end
-
 local keycodes = {
 	[01] = "A",
 	[02] = "B",
@@ -2572,7 +2539,7 @@ function Game.get_grid_width()
 	elseif Game.players == 4 then
 		return 6
 	else
-		Console.log("unexpected number of players during get_grid_width")
+		trace("unexpected number of players during get_grid_width")
 	end
 end
 
@@ -2636,12 +2603,11 @@ function Game.eval_winner()
 end
 
 function Grid:log_state()
-	Console.clear()
-	Console.log(self.active_pill)
-	Console.log(self.combo)
-	Console.log(self.board)
-	Console.log(self.game_over)
-	Console.log(self.cascade_trigger)
+	trace(self.active_pill)
+	trace(self.combo)
+	trace(self.board)
+	trace(self.game_over)
+	trace(self.cascade_trigger)
 end
 
 -- like the stage with viruses, bosses etc
@@ -2715,7 +2681,7 @@ function Grid:send_surprises(combo, target)
 		return
 	end
 
-	Console.log("target: " .. target)
+	trace("target: " .. target)
 	if target == TARGETS.LEADER then
 		victim = Game.find_leader(self.player)
 	elseif target == TARGETS.RANDOM then
@@ -3219,7 +3185,6 @@ function Grid:draw()
 end
 
 function TIC()
-	Console.update()
 	cls(0)
 
 	rectb(0, 0, 240, 136, 12)
@@ -3284,7 +3249,6 @@ function TIC()
 
 	t = t + 1
 	Game.frame = Game.frame + 1
-	Console.draw()
 end
 
 -- <TILES>
