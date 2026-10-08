@@ -452,6 +452,157 @@ function Audio.generate_character_note(combo, character_name)
 	return note
 end
 
+---@class Rune
+---@field name "R"|"S"|"E"
+---@field W integer
+---@field E integer
+---@field N integer
+---@field S integer
+
+---@class Pill
+---@field rune1 Rune
+---@field rune2 Rune
+
+---@class PositionedPill : Pill
+---@field x number
+---@field y number
+---@field rotation 0|1|2|3
+
+---@class NextPill : PositionedPill
+---@field spawn_animation { cur_frame: integer, rune1_frames: integer[], rune2_frames: integer[]}
+
+---@class PillFactory
+local PillFactory = {}
+
+---Generates pill with random halves.
+---@return Rune rune1
+---@return Rune rune2
+function PillFactory.generate_random_runes()
+	local runes = Assets.sprites.pieces.pills
+	local rune1 = runes[math.random(1, #runes)]
+	local rune2 = runes[math.random(1, #runes)]
+	return rune1, rune2
+end
+
+---Returns random color from (R, S, E)
+---@return string
+function PillFactory.get_random_color()
+	local bag = { "R", "S", "E" }
+	local i = math.random(#bag)
+	return bag[i]
+end
+
+---PillSequence helps to maintain the same pills across many players.
+---@class PillSequence
+---@field pills table<integer, Pill>
+---@field head number
+---@field tail number
+local PillQueue = {}
+PillQueue.__index = PillQueue
+
+---Generates the queue without the pills. Needs to be filled before using.
+function PillQueue:new()
+	local queue = setmetatable({ head = 1, tail = 0, pills = {} }, self)
+	return queue
+end
+
+---Fills queue with the specified number of pills. They're appended at the end of the queue.
+function PillQueue:fill(number)
+	for i = 1, number do
+		local rune1, rune2 = PillFactory.generate_random_runes()
+		self.pills[self.tail + i] = {
+			rune1 = rune1,
+			rune2 = rune2,
+		}
+	end
+	self.tail = self.tail + number
+end
+
+---Clears the queue and all metadata.
+function PillQueue:clear()
+	self.pills = {}
+	self.head = 1
+	self.tail = 0
+end
+
+---Discards all pills before the index (excluding index).
+---@param index integer
+function PillQueue:discard_before(index)
+	if self.head > index then
+		return
+	end
+	for i = self.head, index - 1 do
+		self.pills[i] = nil
+	end
+	self.head = index
+end
+
+---Returns current queue size.
+---@return integer size
+function PillQueue:size()
+	return self.tail - self.head + 1
+end
+
+---Retrieves pill with given index from the queue. If it doesn't exist, it fills the queue with 100 new pills.
+---@param index integer
+---@return Pill? pill
+function PillQueue:get_with_refill(index)
+	if index < self.head or index % 1 ~= 0 then
+		return nil
+	end
+	while index > self.tail do
+		self:fill(100)
+	end
+	return self.pills[index]
+end
+
+---@enum AnimationE
+local ANIMATIONS = {
+	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
+	DISAPPEARING_PILL = 1,
+	CLOUD_RAINING = 2,
+	SOMETHING = 3,
+}
+
+---@class Animation
+local Animation = {
+	animation_index = 0,
+}
+Animation.__index = Animation
+
+---Creates new animation. Each animation type needs different options.
+---@param name AnimationE
+---@param options any -- TODO
+---@return Animation
+function Animation:new(name, options)
+	local animation = {
+		name = name,
+		index = self.animation_index,
+		cur_frame = 0,
+	}
+
+	if name == ANIMATIONS.DROP_TRAIL then
+		animation.num_frames = 15
+		animation.start_x1 = options.start_x1
+		animation.start_y1 = options.start_y1
+		animation.start_x2 = options.start_x2
+		animation.start_y2 = options.start_y2
+		animation.end_x1 = options.end_x1
+		animation.end_y1 = options.end_y1
+		animation.end_x2 = options.end_x2
+		animation.end_y2 = options.end_y2
+		animation.rotation = options.rotation
+	elseif name == ANIMATIONS.DISAPPEARING_PILL then
+		animation.num_frames = 10
+		animation.x = options.x
+		animation.y = options.y
+		animation.sprites = Assets.sprites.fx.disappear[options.color]
+	end
+
+	self.animation_index = self.animation_index + 1
+	return animation
+end
+
 ---@class GridSetting
 ---@field text string
 ---@field type "number" | "character"
@@ -470,6 +621,11 @@ end
 ---@field update_timer integer -- each player has their own timer. every "interval", update_timer resets and grid progresses
 ---@field score integer
 ---@field character_flip integer
+---@field active_pill PositionedPill?
+---@field next_pill NextPill?
+---@field next_pill_x integer -- stays the same for given player/grid
+---@field next_pill_y integer -- stays the same for given player/grid
+---@field pill_number integer -- counts the current pill (how many pills the player has spawned so far)
 local Grid = {
 	cell_size = 8,
 	intervals = {
@@ -483,6 +639,7 @@ local Grid = {
 		15,
 		10,
 	},
+	pill_number = 1,
 }
 Grid.__index = Grid
 
@@ -497,6 +654,7 @@ Grid.__index = Grid
 ---@field grids_spawned boolean
 ---@field dont_draw_top_border_positions integer[]
 ---@field next_game_overlay_delay_frames integer
+---@field pill_queue PillSequence
 local Game = {
 	scene = SCENES.TITLE,
 	mode = MODES.CLASSIC,
@@ -510,11 +668,13 @@ local Game = {
 	next_game_overlay_delay_frames = 120,
 	is_paused = false,
 	paused_by_player = 0,
+	pill_queue = PillQueue:new(),
 }
 
 function Game.setup_game(players)
 	Game.players = players
 	Game.frame = 0
+	Game.pill_queue:fill(200)
 
 	for i = 1, players, 1 do
 		local grid = Grid:new(i)
@@ -523,6 +683,8 @@ function Game.setup_game(players)
 
 	Game.scene = SCENES.PARAMS
 end
+
+function Game.generate_pill_queue() end
 
 function Game.pause_by_player(player)
 	Game.is_paused = not Game.is_paused
@@ -618,6 +780,7 @@ function Game.evaluate_speed_up()
 end
 
 function Game.reset_grids() -- resets the grids and returns stored settings
+	Game.pill_queue:clear()
 	Game.grids_spawned = false
 	Game.dont_draw_top_border_positions = {} -- spawn_grid() marks positions where the screen border should be hidden. we need to clear that.
 	Game.next_game_overlay_delay_frames = 120
@@ -832,62 +995,6 @@ function Grid:new(player)
 	g.animation_queue = {}
 
 	return g
-end
-
-local ANIMATIONS = {
-	DROP_TRAIL = 0, -- plays both drop_trail and ghost_pill
-	DISAPPEARING_PILL = 1,
-	CLOUD_RAINING = 2,
-	SOMETHING = 3,
-}
-
-local Animation = {
-	animation_index = 0,
-}
-Animation.__index = Animation
-
-function Animation:new(name, options)
-	local animation = {
-		name = name,
-		index = self.animation_index,
-		cur_frame = 0,
-	}
-
-	if name == ANIMATIONS.DROP_TRAIL then
-		animation.num_frames = 15
-		animation.start_x1 = options.start_x1
-		animation.start_y1 = options.start_y1
-		animation.start_x2 = options.start_x2
-		animation.start_y2 = options.start_y2
-		animation.end_x1 = options.end_x1
-		animation.end_y1 = options.end_y1
-		animation.end_x2 = options.end_x2
-		animation.end_y2 = options.end_y2
-		animation.rotation = options.rotation
-	elseif name == ANIMATIONS.DISAPPEARING_PILL then
-		animation.num_frames = 10
-		animation.x = options.x
-		animation.y = options.y
-		animation.sprites = Assets.sprites.fx.disappear[options.color]
-	end
-
-	self.animation_index = self.animation_index + 1
-	return animation
-end
-
-local Runes = {}
-
-function Runes.generate_pill_runes()
-	local runes = Assets.sprites.pieces.pills
-	local rune1 = runes[math.random(1, #runes)]
-	local rune2 = runes[math.random(1, #runes)]
-	return { rune1 = rune1, rune2 = rune2 }
-end
-
-function Runes.get_random_color()
-	local bag = { "R", "S", "E" }
-	local i = math.random(#bag)
-	return bag[i]
 end
 
 function Grid:apply_settings(board_presets)
@@ -1360,7 +1467,11 @@ function Grid:draw_stage_border()
 end
 
 function Grid:generate_next_pill()
-	local pill = Runes.generate_pill_runes()
+	local pill = Game.pill_queue:get_with_refill(self.pill_number)
+	if not pill then
+		return
+	end
+	self.pill_number = self.pill_number + 1
 
 	self.next_pill = {
 		rune1 = pill.rune1,
@@ -1468,7 +1579,7 @@ function Grid:spawn_queued_surprises()
 		table.remove(bag, spawnindex)
 		local spawny = 0
 
-		local color = Runes.get_random_color()
+		local color = PillFactory.get_random_color()
 		local cell = {
 			type = CELL_TYPES.HALF,
 			color = color,
