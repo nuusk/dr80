@@ -97,6 +97,18 @@ local Assets = {
 					504,
 					490,
 				},
+				half_dark = {
+					500,
+					485,
+					501,
+					484,
+				},
+				half_special_ready = {
+					502,
+					487,
+					502,
+					486,
+				},
 				pill_dark_gray = 496,
 				pill_white_border = 444,
 			},
@@ -1075,10 +1087,35 @@ function Grid:draw_level()
 	rectb(self:cx(1), self:cy(2), 8, 8, 1)
 end
 
-function Grid:draw_step()
+---Similar to draw_special_pill but for 3 and 4 player mode.
+---We can only fit half a pill for displaying special
+function Grid:draw_special_half()
+	if Game.mode ~= MODES.VANISH then
+		return
+	end
+	local cx = self:cx(self.character_x + 2)
+	local cy = self:cy(self.character_y)
+
+	local sprite = Assets.sprites.ui.background.half_dark[self.player]
+	local frames_since_last_special = t - self.last_special_frame
+	local cooldown_diff = frames_since_last_special - Config.cooldown_vanish
+
+	if
+		(frames_since_last_special >= 0 and frames_since_last_special < 5)
+		or (frames_since_last_special >= 10 and frames_since_last_special < 15)
+		or (cooldown_diff >= 0 and cooldown_diff < 5)
+		or (cooldown_diff >= 10 and cooldown_diff < 15)
+		or cooldown_diff >= 20
+	then
+		sprite = Assets.sprites.ui.background.half_special_ready[self.player]
+	end
+
+	spr(sprite, cx, cy, 0, 1, 0, 0, 1, 1)
+end
+
+function Grid:draw_special_pill()
 	local cx = self:cx(self.character_x)
-	local cy1 = self:cy(self.character_y + 3)
-	local cy2 = self:cy(self.character_y + 4)
+	local cy = self:cy(self.character_y + 3)
 
 	local sprite = Assets.sprites.ui.background.pill_dark[self.player]
 	if Game.mode == MODES.VANISH then
@@ -1096,7 +1133,7 @@ function Grid:draw_step()
 		end
 	end
 
-	spr(sprite, cx, cy1, 0, 1, 0, 0, 2, 1)
+	spr(sprite, cx, cy, 0, 1, 0, 0, 2, 1)
 	-- spr(Assets.sprites.ui.background.pill_dark_gray, cx, cy2, 0, 1, 0, 0, 2, 1)
 end
 
@@ -3322,10 +3359,6 @@ function Grid:draw()
 	if self.game_over ~= true then
 		self:draw_num_stones()
 	end
-	if Game.players <= 2 then
-		self:draw_step()
-		self:draw_additionals()
-	end
 	self:draw_next_pill()
 	-- TODO: consider removing
 	-- self:draw_target()
@@ -3333,6 +3366,13 @@ function Grid:draw()
 		self:draw_stage_border()
 		self:draw_stage()
 		self:draw_num_stones()
+	end
+
+	if Game.players <= 2 then
+		self:draw_special_pill()
+		self:draw_additionals()
+	else
+		self:draw_special_half()
 	end
 end
 
@@ -3365,6 +3405,7 @@ function TIC()
 			Game.scene = SCENES.MENU
 		end
 	elseif Game.scene == SCENES.GAME then
+		Game.draw_screen_border()
 		if Game.grids_spawned then
 			if Game.eval_winner() or Game.eval_game_overs() then
 				Audio.play_bgm(Assets.music.winner)
@@ -3387,7 +3428,6 @@ function TIC()
 		if t % Config.pill_sequence_cleanup_interval_frames == 0 then
 			Game.cleanup_pill_sequence()
 		end
-		Game.draw_screen_border()
 	elseif Game.scene == SCENES.GAME_OVER then
 		Game.draw_grids()
 		Game.animate_grids()
