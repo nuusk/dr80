@@ -106,7 +106,7 @@ local Assets = {
 				half_special_ready = {
 					502,
 					487,
-					502,
+					504,
 					486,
 				},
 				pill_dark_gray = 496,
@@ -3429,9 +3429,9 @@ function TIC()
 			Game.cleanup_pill_sequence()
 		end
 	elseif Game.scene == SCENES.GAME_OVER then
+		Game.draw_screen_border()
 		Game.draw_grids()
 		Game.animate_grids()
-		Game.draw_screen_border()
 		if Game.next_game_overlay_delay_frames > 0 then
 			Game.next_game_overlay_delay_frames = Game.next_game_overlay_delay_frames - 1
 		else
