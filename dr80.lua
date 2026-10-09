@@ -2,7 +2,7 @@
 -- author:  nuus
 -- desc:    remake of dr mario (nes). clear viruses using falling pills.
 -- license: MIT License
--- version: 1.1
+-- version: 1.2
 -- script:  lua
 math.randomseed(tstamp())
 
@@ -4171,4 +4171,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
