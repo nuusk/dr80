@@ -321,14 +321,19 @@ local SCENES = {
 	GAME_OVER = 3,
 }
 
----@enum Mode
-local MODES = {
+---@enum Rule
+local RULES = {
 	CLASSIC = 0,
-	CAMPAIGN = 1,
-	ENDLESS = 2,
-	MONOCOLOR = 3,
+	-- ENDLESS = 2,
+	-- MONOCOLOR = 3,
 	VANISH = 4,
 	POWER_DROP = 5,
+}
+
+---@enum GameType
+local GAME_TYPES = {
+	CAMPAIGN = 0,
+	BATTLE = 1,
 }
 
 ---@class Keymap
@@ -671,7 +676,7 @@ Grid.__index = Grid
 
 ---@class Game
 ---@field scene Scene
----@field mode Mode
+---@field mode Rule
 ---@field grids Grid[]
 ---@field scores integer[]
 ---@field players integer
@@ -683,7 +688,7 @@ Grid.__index = Grid
 ---@field pill_sequence PillSequence
 local Game = {
 	scene = SCENES.TITLE,
-	mode = MODES.CLASSIC,
+	mode = RULES.CLASSIC,
 	grids = {},
 	scores = { 0, 0, 0, 0 },
 	players = 1,
@@ -1090,7 +1095,7 @@ end
 ---Similar to draw_special_pill but for 3 and 4 player mode.
 ---We can only fit half a pill for displaying special
 function Grid:draw_special_half()
-	if Game.mode ~= MODES.VANISH then
+	if Game.mode ~= RULES.VANISH then
 		return
 	end
 	local cx = self:cx(self.character_x + 2)
@@ -1118,7 +1123,7 @@ function Grid:draw_special_pill()
 	local cy = self:cy(self.character_y + 3)
 
 	local sprite = Assets.sprites.ui.background.pill_dark[self.player]
-	if Game.mode == MODES.VANISH then
+	if Game.mode == RULES.VANISH then
 		local frames_since_last_special = t - self.last_special_frame
 		local cooldown_diff = frames_since_last_special - Config.cooldown_vanish
 
@@ -1347,7 +1352,7 @@ function Grid:generate_stones()
 		return {}
 	end
 
-	if Game.mode == MODES.MONOCOLOR then
+	if Game.mode == RULES.MONOCOLOR then
 		available_colors = {
 			available_colors[math.random(#available_colors)],
 		}
@@ -1403,7 +1408,7 @@ function Grid:generate_stones()
 					end
 				end
 				local color
-				if Game.mode == MODES.MONOCOLOR then
+				if Game.mode == RULES.MONOCOLOR then
 					color = available_colors[1]
 				else
 					color = available[math.random(#available)]
@@ -1779,14 +1784,14 @@ function Grid:special_ability()
 		return
 	end
 	local frames_since_last_special = t - self.last_special_frame
-	if Game.mode == MODES.VANISH then
+	if Game.mode == RULES.VANISH then
 		if frames_since_last_special > Config.cooldown_vanish then
 			self:vanish_pill()
 			self.last_special_frame = t
 		else
 			Audio.play(Assets.sfx.character.invalid[self.player])
 		end
-	elseif Game.mode == MODES.POWER_DROP then
+	elseif Game.mode == RULES.POWER_DROP then
 		self:drop_pill()
 		self.last_special_frame = t
 	end
@@ -3128,7 +3133,7 @@ function setup_player_keys(player_index)
 	print(KEYMAPS[player_index])
 end
 
-local main_menu
+local rules_menu
 local players_menu
 
 players_menu = Menu:new({
@@ -3160,19 +3165,19 @@ players_menu = Menu:new({
 		{
 			label = "BACK",
 			callback = function()
-				Game.menu = main_menu
+				Game.menu = rules_menu
 			end,
 		},
 	},
 })
 
-main_menu = Menu:new({
+rules_menu = Menu:new({
 	options = {
 		{
 			label = "CLASSIC",
 			callback = function()
 				Game.menu = players_menu
-				Game.mode = MODES.CLASSIC
+				Game.mode = RULES.CLASSIC
 			end,
 			info = "just like dr mario",
 		},
@@ -3194,7 +3199,7 @@ main_menu = Menu:new({
 			label = "POWER DROP",
 			callback = function()
 				Game.menu = players_menu
-				Game.mode = MODES.POWER_DROP
+				Game.mode = RULES.POWER_DROP
 			end,
 			info = "up arrow instantly drops pill",
 		},
@@ -3202,7 +3207,7 @@ main_menu = Menu:new({
 			label = "VANISH",
 			callback = function()
 				Game.menu = players_menu
-				Game.mode = MODES.VANISH
+				Game.mode = RULES.VANISH
 			end,
 			info = "up arrow discards pill (prototype)",
 		},
@@ -3238,14 +3243,14 @@ next_game_menu = Menu:new({
 			label = "MAIN MENU",
 			callback = function()
 				Game.reset_grids()
-				Game.menu = main_menu
+				Game.menu = rules_menu
 				Game.scene = SCENES.MENU
 			end,
 		},
 	},
 })
 
-Game.menu = main_menu
+Game.menu = rules_menu
 
 function Grid:update()
 	local keys = KEYMAPS[self.player]
@@ -3350,7 +3355,7 @@ function Grid:draw()
 	self:draw_board()
 	self:draw_static_pills()
 	self:draw_active_pill()
-	if Game.mode == MODES.POWER_DROP then
+	if Game.mode == RULES.POWER_DROP then
 		self:draw_power_drop_shadow()
 	end
 	self:draw_halves()
