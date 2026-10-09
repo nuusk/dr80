@@ -35,7 +35,8 @@ local Screen = {
 
 -- TODO add more config options here
 local Config = {
-	pill_sequence_cleanup_interval_frames = 3600,
+	pill_sequence_cleanup_interval_frames = 3600, -- 1 minute
+	cooldown_vanish = 300, -- 5 seconds
 }
 
 local Assets = {
@@ -89,6 +90,12 @@ local Assets = {
 					498,
 					496,
 					482,
+				},
+				pill_special_ready = {
+					488,
+					506,
+					504,
+					490,
 				},
 				pill_dark_gray = 496,
 				pill_white_border = 444,
@@ -436,8 +443,8 @@ end
 
 ---Plays sfx with given speed and note.
 ---@param id integer
----@param speed integer
----@param note integer
+---@param speed integer?
+---@param note integer?
 function Audio.play(id, speed, note)
 	local now = time()
 	if Audio.sfx_cooldown[id] == nil or now - Audio.sfx_cooldown[id] > 250 then
@@ -631,6 +638,7 @@ end
 ---@field next_pill_x integer -- stays the same for given player/grid
 ---@field next_pill_y integer -- stays the same for given player/grid
 ---@field pill_number integer -- counts the current pill (how many pills the player has spawned so far)
+---@field last_special_frame number -- used for calculating cooldown for some special abilities (such as vanish)
 local Grid = {
 	cell_size = 8,
 	intervals = {
@@ -645,6 +653,7 @@ local Grid = {
 		10,
 	},
 	pill_number = 1,
+	last_special_frame = -math.huge,
 }
 Grid.__index = Grid
 
@@ -1071,8 +1080,24 @@ function Grid:draw_step()
 	local cy1 = self:cy(self.character_y + 3)
 	local cy2 = self:cy(self.character_y + 4)
 
-	spr(Assets.sprites.ui.background.pill_dark[self.player], cx, cy1, 0, 1, 0, 0, 2, 1)
-	spr(Assets.sprites.ui.background.pill_dark_gray, cx, cy2, 0, 1, 0, 0, 2, 1)
+	local sprite = Assets.sprites.ui.background.pill_dark[self.player]
+	if Game.mode == MODES.VANISH then
+		local frames_since_last_special = t - self.last_special_frame
+		local cooldown_diff = frames_since_last_special - Config.cooldown_vanish
+
+		if
+			(frames_since_last_special >= 0 and frames_since_last_special < 5)
+			or (frames_since_last_special >= 10 and frames_since_last_special < 15)
+			or (cooldown_diff >= 0 and cooldown_diff < 5)
+			or (cooldown_diff >= 10 and cooldown_diff < 15)
+			or cooldown_diff >= 20
+		then
+			sprite = Assets.sprites.ui.background.pill_special_ready[self.player]
+		end
+	end
+
+	spr(sprite, cx, cy1, 0, 1, 0, 0, 2, 1)
+	-- spr(Assets.sprites.ui.background.pill_dark_gray, cx, cy2, 0, 1, 0, 0, 2, 1)
 end
 
 -- 2 players only
@@ -1713,10 +1738,20 @@ function Grid:cycle_target()
 end
 
 function Grid:special_ability()
+	if self.active_pill == nil then
+		return
+	end
+	local frames_since_last_special = t - self.last_special_frame
 	if Game.mode == MODES.VANISH then
-		self:vanish_pill()
+		if frames_since_last_special > Config.cooldown_vanish then
+			self:vanish_pill()
+			self.last_special_frame = t
+		else
+			Audio.play(Assets.sfx.character.invalid[self.player])
+		end
 	elseif Game.mode == MODES.POWER_DROP then
 		self:drop_pill()
+		self.last_special_frame = t
 	end
 end
 
@@ -2956,8 +2991,6 @@ function Grid:remove_marked()
 
 	return removed_counter
 end
-
--- Game manager end --
 
 t = 0
 
@@ -4254,4 +4287,3 @@ end
 -- <PALETTE>
 -- 000:2834485d275d993e53ef7d575d4048ffffe6ffd691a57579ffffff3b5dc924c2ff89eff71a1c2c9db0c2566c86333c57
 -- </PALETTE>
-
