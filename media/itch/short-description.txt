@@ -1,0 +1,8 @@
+Game inspired by Dr. Mario (nes)
+
+Clear viruses using falling pills (that you can rotate). 4 colors in a row or column clears them. If you chain two or more clears in a row, you will send a surprise to your enemies!
+
+Game is focused on battling your friends, but you can enjoy single player mode as well.
+
+There are three rule sets: Classic, Power Drop and Vanish. They change what up arrow does. In Classic rule set, the up arrow does nothing - just like in the original game. In Power Drop rule set, the up arrow makes the pill drop instantly to the ground. In Vanish rule set, you can press up arrow to make your current pill disappear (on a 5s cooldown).
+
